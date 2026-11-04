@@ -16,6 +16,80 @@ const BCRYPT_COST = 12;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PgSessionStore = connectPgSimple(session);
+const CARD_SELECT = `
+  SELECT c.id, c.set_id, s.name AS set_name, c.name, c.card_number,
+         c.condition, c.purchase_price,
+         TO_CHAR(c.acquired_date, 'YYYY-MM-DD') AS acquired_date,
+         c.notes, c.created_at
+  FROM cards c
+  JOIN sets s ON s.id = c.set_id AND s.user_id = c.user_id
+`;
+
+type CardPayload = {
+  setId: string;
+  name: string;
+  cardNumber: string | null;
+  condition: string | null;
+  purchasePrice: string;
+  acquiredDate: string | null;
+  notes: string | null;
+};
+
+function parseCardPayload(body: any): { value?: CardPayload; error?: string } {
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const setId = typeof body?.set_id === "string" ? body.set_id : "";
+  if (!name) return { error: "Card name is required." };
+  if (name.length > 200) return { error: "Card name must be 200 characters or fewer." };
+  if (!UUID_PATTERN.test(setId)) return { error: "Choose a valid set." };
+
+  const priceText =
+    body?.purchase_price === undefined || body.purchase_price === ""
+      ? "0"
+      : String(body.purchase_price);
+  if (!/^\d{1,8}(?:\.\d{1,2})?$/.test(priceText)) {
+    return { error: "Purchase price must be a nonnegative amount with up to two decimals." };
+  }
+
+  const acquiredDate =
+    typeof body?.acquired_date === "string" && body.acquired_date
+      ? body.acquired_date
+      : null;
+  if (acquiredDate) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(acquiredDate)) {
+      return { error: "Enter a valid acquisition date." };
+    }
+    const parsedDate = new Date(`${acquiredDate}T00:00:00.000Z`);
+    if (
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.toISOString().slice(0, 10) !== acquiredDate
+    ) {
+      return { error: "Enter a valid acquisition date." };
+    }
+  }
+
+  const optionalText = (value: unknown, field: string, maxLength: number) => {
+    if (value === undefined || value === null || value === "") return null;
+    if (typeof value !== "string" || value.length > maxLength) {
+      throw new Error(`${field} must be ${maxLength} characters or fewer.`);
+    }
+    return value.trim() || null;
+  };
+  try {
+    return {
+      value: {
+        setId,
+        name,
+        cardNumber: optionalText(body?.card_number, "Card number", 40),
+        condition: optionalText(body?.condition, "Condition", 80),
+        purchasePrice: priceText,
+        acquiredDate,
+        notes: optionalText(body?.notes, "Notes", 4000),
+      },
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Invalid card details." };
+  }
+}
 
 type PublicUser = {
   id: string;
@@ -273,8 +347,165 @@ export function createApp(pool: Pool) {
     }
   });
 
+  const cardsRouter = express.Router();
+  cardsRouter.use(requireAuth);
+
+  cardsRouter.get("/", async (req, res, next) => {
+    try {
+      const result = await pool.query(
+        `${CARD_SELECT}
+         WHERE c.user_id = $1
+         ORDER BY c.created_at DESC, c.name ASC`,
+        [req.session.userId],
+      );
+      res.json({ cards: result.rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.post("/", async (req, res, next) => {
+    const parsed = parseCardPayload(req.body);
+    if (!parsed.value) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+    const card = parsed.value;
+    try {
+      const ownedSet = await pool.query(
+        "SELECT id FROM sets WHERE id = $1 AND user_id = $2",
+        [card.setId, req.session.userId],
+      );
+      if (!ownedSet.rowCount) {
+        res.status(404).json({ error: "Set not found." });
+        return;
+      }
+      const inserted = await pool.query<{ id: string }>(
+        `INSERT INTO cards
+           (id, user_id, set_id, name, card_number, condition,
+            purchase_price, acquired_date, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id`,
+        [
+          randomUUID(),
+          req.session.userId,
+          card.setId,
+          card.name,
+          card.cardNumber,
+          card.condition,
+          card.purchasePrice,
+          card.acquiredDate,
+          card.notes,
+        ],
+      );
+      const result = await pool.query(
+        `${CARD_SELECT} WHERE c.id = $1 AND c.user_id = $2`,
+        [inserted.rows[0].id, req.session.userId],
+      );
+      res.status(201).json({ card: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.get("/:id", async (req, res, next) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+      res.status(404).json({ error: "Card not found." });
+      return;
+    }
+    try {
+      const result = await pool.query(
+        `${CARD_SELECT} WHERE c.id = $1 AND c.user_id = $2`,
+        [req.params.id, req.session.userId],
+      );
+      if (!result.rows[0]) {
+        res.status(404).json({ error: "Card not found." });
+        return;
+      }
+      res.json({ card: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.put("/:id", async (req, res, next) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+      res.status(404).json({ error: "Card not found." });
+      return;
+    }
+    const parsed = parseCardPayload(req.body);
+    if (!parsed.value) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+    const card = parsed.value;
+    try {
+      const ownedCard = await pool.query(
+        "SELECT id FROM cards WHERE id = $1 AND user_id = $2",
+        [req.params.id, req.session.userId],
+      );
+      if (!ownedCard.rowCount) {
+        res.status(404).json({ error: "Card not found." });
+        return;
+      }
+      const ownedSet = await pool.query(
+        "SELECT id FROM sets WHERE id = $1 AND user_id = $2",
+        [card.setId, req.session.userId],
+      );
+      if (!ownedSet.rowCount) {
+        res.status(404).json({ error: "Set not found." });
+        return;
+      }
+      await pool.query(
+        `UPDATE cards
+         SET set_id = $1, name = $2, card_number = $3, condition = $4,
+             purchase_price = $5, acquired_date = $6, notes = $7
+         WHERE id = $8 AND user_id = $9`,
+        [
+          card.setId,
+          card.name,
+          card.cardNumber,
+          card.condition,
+          card.purchasePrice,
+          card.acquiredDate,
+          card.notes,
+          req.params.id,
+          req.session.userId,
+        ],
+      );
+      const result = await pool.query(
+        `${CARD_SELECT} WHERE c.id = $1 AND c.user_id = $2`,
+        [req.params.id, req.session.userId],
+      );
+      res.json({ card: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.delete("/:id", async (req, res, next) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+      res.status(404).json({ error: "Card not found." });
+      return;
+    }
+    try {
+      const result = await pool.query(
+        "DELETE FROM cards WHERE id = $1 AND user_id = $2 RETURNING id",
+        [req.params.id, req.session.userId],
+      );
+      if (!result.rowCount) {
+        res.status(404).json({ error: "Card not found." });
+        return;
+      }
+      res.status(204).end();
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.use("/api/auth", authRouter);
   app.use("/api/sets", setsRouter);
+  app.use("/api/cards", cardsRouter);
   app.use(
     (
       error: unknown,

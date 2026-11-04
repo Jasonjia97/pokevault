@@ -217,4 +217,119 @@ describe("PokéVault authentication and set ownership", () => {
     expect(duplicate.status).toBe(409);
     await request(app).post("/api/auth/logout").set("Cookie", cookie).send({});
   });
+
+  it("creates, lists, views, edits, and deletes a card", async () => {
+    const { cookie } = await signUp(`card-crud-${randomUUID()}@example.test`);
+    const set = await request(app)
+      .post("/api/sets")
+      .set("Cookie", cookie)
+      .send({ name: "Test Set" });
+    const created = await request(app)
+      .post("/api/cards")
+      .set("Cookie", cookie)
+      .send({
+        set_id: set.body.set.id,
+        name: "Pikachu",
+        card_number: "025",
+        condition: "Near mint",
+        purchase_price: "12.50",
+        acquired_date: "2025-03-04",
+        notes: "Holo",
+      });
+
+    expect(created.status).toBe(201);
+    expect(created.body.card).toMatchObject({
+      name: "Pikachu",
+      set_name: "Test Set",
+      card_number: "025",
+      condition: "Near mint",
+      purchase_price: "12.50",
+      acquired_date: "2025-03-04",
+      notes: "Holo",
+    });
+    const cardId = created.body.card.id as string;
+    expect((await request(app).get("/api/cards").set("Cookie", cookie)).body.cards)
+      .toHaveLength(1);
+    expect(
+      (await request(app).get(`/api/cards/${cardId}`).set("Cookie", cookie)).body.card.name,
+    ).toBe("Pikachu");
+
+    const updated = await request(app)
+      .put(`/api/cards/${cardId}`)
+      .set("Cookie", cookie)
+      .send({ ...created.body.card, set_id: set.body.set.id, name: "Pikachu ex" });
+    expect(updated.status).toBe(200);
+    expect(updated.body.card.name).toBe("Pikachu ex");
+
+    expect((await request(app).delete(`/api/cards/${cardId}`).set("Cookie", cookie)).status)
+      .toBe(204);
+    expect((await request(app).get(`/api/cards/${cardId}`).set("Cookie", cookie)).status)
+      .toBe(404);
+    expect((await request(app).get("/api/cards").set("Cookie", cookie)).body.cards)
+      .toHaveLength(0);
+    await request(app).post("/api/auth/logout").set("Cookie", cookie).send({});
+  });
+
+  it("isolates card listing, details, edits, deletion, and set assignment by user", async () => {
+    const alice = await signUp(`card-owner-${randomUUID()}@example.test`);
+    const bob = await signUp(`card-visitor-${randomUUID()}@example.test`);
+    const aliceSet = await request(app)
+      .post("/api/sets")
+      .set("Cookie", alice.cookie)
+      .send({ name: "Alice Set" });
+    const bobsSet = await request(app)
+      .post("/api/sets")
+      .set("Cookie", bob.cookie)
+      .send({ name: "Bob Set" });
+    const card = await request(app)
+      .post("/api/cards")
+      .set("Cookie", alice.cookie)
+      .send({ set_id: aliceSet.body.set.id, name: "Private card" });
+    expect(card.status).toBe(201);
+    const cardId = card.body.card.id as string;
+
+    const bobsCards = await request(app).get("/api/cards").set("Cookie", bob.cookie);
+    expect(bobsCards.status).toBe(200);
+    expect(bobsCards.body.cards).toHaveLength(0);
+    expect((await request(app).get(`/api/cards/${cardId}`).set("Cookie", bob.cookie)).status)
+      .toBe(404);
+    expect(
+      (await request(app).put(`/api/cards/${cardId}`).set("Cookie", bob.cookie).send({
+        set_id: bobsSet.body.set.id,
+        name: "Stolen edit",
+      })).status,
+    ).toBe(404);
+    expect((await request(app).delete(`/api/cards/${cardId}`).set("Cookie", bob.cookie)).status)
+      .toBe(404);
+
+    const foreignSetCard = await request(app)
+      .post("/api/cards")
+      .set("Cookie", bob.cookie)
+      .send({ set_id: aliceSet.body.set.id, name: "Wrong set owner" });
+    expect(foreignSetCard.status).toBe(404);
+    expect((await request(app).get(`/api/cards/${cardId}`).set("Cookie", alice.cookie)).status)
+      .toBe(200);
+    expect((await request(app).get("/api/cards")).status).toBe(401);
+    await request(app).post("/api/auth/logout").set("Cookie", alice.cookie).send({});
+    await request(app).post("/api/auth/logout").set("Cookie", bob.cookie).send({});
+  });
+
+  it("rejects missing card names and negative purchase prices", async () => {
+    const { cookie } = await signUp(`card-validation-${randomUUID()}@example.test`);
+    const set = await request(app)
+      .post("/api/sets")
+      .set("Cookie", cookie)
+      .send({ name: "Validation Set" });
+    const missingName = await request(app)
+      .post("/api/cards")
+      .set("Cookie", cookie)
+      .send({ set_id: set.body.set.id, name: " " });
+    const negativePrice = await request(app)
+      .post("/api/cards")
+      .set("Cookie", cookie)
+      .send({ set_id: set.body.set.id, name: "Invalid price", purchase_price: "-1" });
+    expect(missingName.status).toBe(400);
+    expect(negativePrice.status).toBe(400);
+    await request(app).post("/api/auth/logout").set("Cookie", cookie).send({});
+  });
 });
