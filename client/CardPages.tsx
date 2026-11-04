@@ -5,6 +5,8 @@ import {
   type CardValidationField,
 } from "./cardValidation";
 import { downloadCardsCsv } from "./csvDownload";
+import { ThemeToggle } from "./ThemeToggle";
+import type { Theme } from "./themePreference";
 
 export type PokemonCard = {
   id: string;
@@ -246,12 +248,16 @@ export function CardWorkspace({
   userEmail,
   onNavigate,
   onLogout,
+  theme,
+  onToggleTheme,
 }: {
   path: string;
   sets: CardSet[];
   userEmail: string;
   onNavigate: (path: string) => void;
   onLogout: () => Promise<void>;
+  theme: Theme;
+  onToggleTheme: () => void;
 }) {
   const [cards, setCards] = useState<PokemonCard[]>([]);
   const [card, setCard] = useState<PokemonCard | null>(null);
@@ -391,6 +397,7 @@ export function CardWorkspace({
         </a>
         <div className="account-controls">
           <span className="account-email">{userEmail}</span>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           <button className="secondary-button" type="button" onClick={onLogout}>Sign out</button>
         </div>
       </header>

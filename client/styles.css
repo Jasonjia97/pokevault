@@ -86,6 +86,14 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   font-size: 12px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.theme-toggle { white-space: nowrap; }
+
 .auth-content {
   display: grid;
   width: min(100% - 64px, 1030px);
@@ -519,6 +527,9 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 @media (max-width: 480px) {
   .topbar { min-height: 70px; }
   .topbar-note { display: none; }
+  .account-controls { gap: 8px; }
+  .account-email { max-width: 90px; }
+  .theme-toggle { padding: 0 10px; }
   .auth-card { padding: 29px 23px 24px; }
   .sets-heading { align-items: flex-start; }
   .sets-heading h1 { font-size: 32px; }
@@ -594,4 +605,196 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   .wishlist-own-button { margin: 6px; padding: 9px 10px; font-size: 12px; }
   .card-editor, .card-detail { padding: 20px; }
   .card-form-grid, .card-details-grid { grid-template-columns: 1fr; }
+}
+
+:root[data-theme="light"] {
+  color: #29233a;
+  background: #f7f4fc;
+  --bg: #f7f4fc;
+  --panel: #ffffff;
+  --muted: #625b72;
+  --lavender: #6745a1;
+  --purple: #704bb0;
+  --line: #ded6eb;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(ellipse at 8% 34%, rgba(126, 88, 191, 0.08), transparent 32rem),
+    radial-gradient(ellipse at 93% 85%, rgba(117, 100, 168, 0.06), transparent 26rem),
+    var(--bg);
+}
+
+:root[data-theme="light"] .brand,
+:root[data-theme="light"] .auth-intro h1,
+:root[data-theme="light"] .auth-card h2,
+:root[data-theme="light"] .sets-heading h1,
+:root[data-theme="light"] .create-copy h2,
+:root[data-theme="light"] .list-heading-row h2,
+:root[data-theme="light"] .empty-state h2,
+:root[data-theme="light"] .empty-state h3,
+:root[data-theme="light"] .card-page-heading h1,
+:root[data-theme="light"] .dashboard-chart figcaption,
+:root[data-theme="light"] .dashboard-metric strong,
+:root[data-theme="light"] .card-name,
+:root[data-theme="light"] .card-details-grid dd {
+  color: #29233a;
+}
+
+:root[data-theme="light"] .topbar-note,
+:root[data-theme="light"] .auth-intro > p,
+:root[data-theme="light"] .privacy-note,
+:root[data-theme="light"] .card-subtitle,
+:root[data-theme="light"] .auth-form label,
+:root[data-theme="light"] .create-form label,
+:root[data-theme="light"] .mode-switch,
+:root[data-theme="light"] .account-email,
+:root[data-theme="light"] .sets-heading p,
+:root[data-theme="light"] .create-copy p,
+:root[data-theme="light"] .list-heading-row > span,
+:root[data-theme="light"] .empty-state p,
+:root[data-theme="light"] .set-created,
+:root[data-theme="light"] .card-page-heading p,
+:root[data-theme="light"] .card-filters label,
+:root[data-theme="light"] .card-list-open,
+:root[data-theme="light"] .dashboard-metric,
+:root[data-theme="light"] .dashboard-bar-row,
+:root[data-theme="light"] .card-form label,
+:root[data-theme="light"] .card-details-grid dt,
+:root[data-theme="light"] .page-footer {
+  color: #625b72;
+}
+
+:root[data-theme="light"] .page-footer,
+:root[data-theme="light"] .set-row,
+:root[data-theme="light"] .create-panel,
+:root[data-theme="light"] .auth-card,
+:root[data-theme="light"] .empty-state,
+:root[data-theme="light"] .dashboard-metric,
+:root[data-theme="light"] .dashboard-chart,
+:root[data-theme="light"] .card-list-item,
+:root[data-theme="light"] .card-filters,
+:root[data-theme="light"] .card-editor,
+:root[data-theme="light"] .card-detail,
+:root[data-theme="light"] .card-details-grid > div {
+  border-color: #e2d9ef;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(53, 35, 83, 0.05);
+}
+
+:root[data-theme="light"] .page-footer {
+  border-top-color: #e2d9ef;
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .page-footer span:first-child,
+:root[data-theme="light"] .set-name {
+  color: #403457;
+}
+
+:root[data-theme="light"] .brand-mark,
+:root[data-theme="light"] .set-symbol,
+:root[data-theme="light"] .empty-mark,
+:root[data-theme="light"] .panel-icon {
+  border-color: #d6c5ed;
+  background: #f1eafa;
+  color: #6845a2;
+}
+
+:root[data-theme="light"] .brand-mark span,
+:root[data-theme="light"] .empty-mark span,
+:root[data-theme="light"] .set-symbol span {
+  border-color: #7954b3;
+}
+
+:root[data-theme="light"] .auth-form input,
+:root[data-theme="light"] .create-form input,
+:root[data-theme="light"] .card-form input,
+:root[data-theme="light"] .card-form select,
+:root[data-theme="light"] .card-form textarea,
+:root[data-theme="light"] .card-filters input,
+:root[data-theme="light"] .card-filters select {
+  border-color: #d7cfe3;
+  background: #fff;
+  color: #29233a;
+}
+
+:root[data-theme="light"] .auth-form input::placeholder,
+:root[data-theme="light"] .create-form input::placeholder {
+  color: #777085;
+}
+
+:root[data-theme="light"] .primary-button {
+  border-color: #6745a1;
+  background: linear-gradient(100deg, #6844a5, #8059bc);
+  color: #fff;
+}
+
+:root[data-theme="light"] .secondary-button {
+  border-color: #d6c9e8;
+  background: #f5f1fa;
+  color: #4a3769;
+}
+
+:root[data-theme="light"] .secondary-button:hover {
+  background: #ebe3f5;
+}
+
+:root[data-theme="light"] .mode-switch button,
+:root[data-theme="light"] .cards-nav .text-button,
+:root[data-theme="light"] .brand > span:last-child > span,
+:root[data-theme="light"] .auth-intro h1 span,
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .set-count {
+  color: #6745a1;
+}
+
+:root[data-theme="light"] .set-count {
+  border-color: #d8cbea;
+}
+
+:root[data-theme="light"] .card-list-open:hover {
+  background: #f7f3fc;
+}
+
+:root[data-theme="light"] .card-status-badge {
+  border-color: #d6c9e8;
+  background: #f1eafa;
+  color: #593889;
+}
+
+:root[data-theme="light"] .card-status-badge.status-wishlist {
+  border-color: #e6d5a9;
+  background: #fff8e8;
+  color: #70520c;
+}
+
+:root[data-theme="light"] .star-button {
+  border-left-color: #e2d9ef;
+  color: #8a6200;
+}
+
+:root[data-theme="light"] .star-button:hover,
+:root[data-theme="light"] .star-button[aria-pressed="true"] {
+  background: #fff8e8;
+  color: #785400;
+}
+
+:root[data-theme="light"] .dashboard-bar-track {
+  background: #ece7f3;
+}
+
+:root[data-theme="light"] .form-error,
+:root[data-theme="light"] .field-error {
+  color: #a32943;
+}
+
+:root[data-theme="light"] .global-error {
+  border-color: #e8b6c1;
+  background: #fff0f2;
+  color: #8f233a;
+}
+
+:root[data-theme="light"] .global-error button {
+  color: #6e1d30;
 }
