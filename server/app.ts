@@ -50,6 +50,14 @@ const CARD_SORT_ORDERS: Record<CardSort, string> = {
   date_asc: "c.acquired_date ASC NULLS LAST, c.created_at DESC, c.name ASC",
 };
 
+function csvCell(value: string | null): string {
+  const text = value ?? "";
+  const safeText = /^[\u0000-\u0020\u00a0\ufeff]*[=+\-@]/.test(text)
+    ? `'${text}`
+    : text;
+  return `"${safeText.replace(/"/g, '""')}"`;
+}
+
 function parseCardListFilters(query: Record<string, unknown>) {
   const search = typeof query.search === "string" ? query.search.trim() : "";
   const setId = typeof query.set_id === "string" ? query.set_id : "";
@@ -451,6 +459,52 @@ export function createApp(pool: Pool) {
         ],
       );
       res.json({ cards: result.rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.get("/export.csv", async (req, res, next) => {
+    try {
+      const result = await pool.query(
+        `SELECT c.name, s.name AS set_name, c.card_number, c.condition,
+                c.purchase_price, TO_CHAR(c.acquired_date, 'YYYY-MM-DD') AS acquired_date,
+                c.status, c.notes
+         FROM cards c
+         JOIN sets s ON s.id = c.set_id AND s.user_id = c.user_id
+         WHERE c.user_id = $1
+         ORDER BY c.status ASC, c.name ASC, s.name ASC`,
+        [req.session.userId],
+      );
+      const headers = [
+        "Card Name",
+        "Set",
+        "Card Number",
+        "Condition",
+        "Purchase Price",
+        "Acquisition Date",
+        "Status",
+        "Notes",
+      ];
+      const rows = result.rows.map((card) => [
+        card.name,
+        card.set_name,
+        card.card_number,
+        card.condition,
+        card.purchase_price,
+        card.acquired_date,
+        card.status,
+        card.notes,
+      ]);
+      const csv = `\uFEFF${[headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n")}\r\n`;
+      res
+        .status(200)
+        .set({
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="pokevault-cards.csv"',
+          "Cache-Control": "no-store",
+        })
+        .send(csv);
     } catch (error) {
       next(error);
     }

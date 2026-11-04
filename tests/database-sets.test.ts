@@ -323,6 +323,47 @@ describe("PokéVault authentication and set ownership", () => {
     expect(pikachuEx.status).toBe(201);
     expect(pikachuVmax.status).toBe(201);
     expect(pikachuOtherSet.status).toBe(201);
+    const spreadsheetSafetyCard = await request(app)
+      .post("/api/cards")
+      .set("Cookie", alice.cookie)
+      .send({
+        set_id: aliceSet.body.set.id,
+        name: '=HYPERLINK("https://example.invalid","Pokémon")',
+        card_number: '001, "special"',
+        condition: "Near mint",
+        purchase_price: "3.50",
+        acquired_date: "2026-05-06",
+        status: "wishlist",
+        notes: "=1+1",
+      });
+    expect(spreadsheetSafetyCard.status).toBe(201);
+
+    const aliceExport = await request(app)
+      .get("/api/cards/export.csv")
+      .set("Cookie", alice.cookie);
+    expect(aliceExport.status).toBe(200);
+    expect(aliceExport.headers["content-type"]).toContain("text/csv");
+    expect(aliceExport.headers["content-disposition"])
+      .toContain('attachment; filename="pokevault-cards.csv"');
+    const csv = aliceExport.text.replace(/^\uFEFF/, "");
+    expect(csv.startsWith(
+      '"Card Name","Set","Card Number","Condition","Purchase Price","Acquisition Date","Status","Notes"\r\n',
+    )).toBe(true);
+    expect(csv).not.toContain('"=HYPERLINK');
+    expect(csv).toContain(
+      `"'=HYPERLINK(""https://example.invalid"",""Pokémon"")"`,
+    );
+    expect(csv).toContain(`"001, ""special"""`);
+    expect(csv).toContain(`"2026-05-06","wishlist","'=1+1"`);
+    expect(csv).toContain(`"owned"`);
+    expect(csv).toContain(`"Pikachu VMAX"`);
+    const bobsExport = await request(app)
+      .get("/api/cards/export.csv")
+      .set("Cookie", bob.cookie);
+    expect(bobsExport.status).toBe(200);
+    expect(bobsExport.text).not.toContain("Pikachu");
+    expect(bobsExport.text).not.toContain("HYPERLINK");
+    expect((await request(app).get("/api/cards/export.csv")).status).toBe(401);
 
     const combinedFilter = await request(app)
       .get(`/api/cards?search=PIKACHU&set_id=${aliceSet.body.set.id}&sort=price_desc`)

@@ -436,12 +436,17 @@ export function CardWorkspace({
                 </p>
               </div>
               {!isFavorites && (
-                <button
-                  className="primary-button"
-                  onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}
-                >
-                  ＋ {isWishlist ? "Add a wishlist card" : "Add a card"}
-                </button>
+                <div className="card-form-actions">
+                  <a className="secondary-button" href="/api/cards/export.csv" download="pokevault-cards.csv">
+                    Download CSV
+                  </a>
+                  <button
+                    className="primary-button"
+                    onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}
+                  >
+                    ＋ {isWishlist ? "Add a wishlist card" : "Add a card"}
+                  </button>
+                </div>
               )}
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
