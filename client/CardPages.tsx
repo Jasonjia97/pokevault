@@ -355,6 +355,7 @@ export function CardWorkspace({
           <button className="text-button" onClick={() => onNavigate("/sets")}>← Sets</button>
           <span aria-hidden="true">/</span>
           <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
+          <button className="text-button" onClick={() => onNavigate("/dashboard")}>Dashboard</button>
           <span aria-hidden="true">/</span>
           {isFavorites ? <span>Favorites</span> : (
             <button className="text-button" onClick={() => onNavigate("/favorites")}>Favorites</button>

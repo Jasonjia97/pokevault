@@ -270,7 +270,7 @@ describe("PokéVault authentication and set ownership", () => {
     await request(app).post("/api/auth/logout").set("Cookie", cookie).send({});
   });
 
-  it("isolates card listing, details, edits, deletion, and set assignment by user", async () => {
+  it("isolates card data and calculates the signed-in user's dashboard totals", async () => {
     expect((await request(app).get("/api/cards/favorites")).status).toBe(401);
     const alice = await signUp(`card-owner-${randomUUID()}@example.test`);
     const bob = await signUp(`card-visitor-${randomUUID()}@example.test`);
@@ -396,6 +396,42 @@ describe("PokéVault authentication and set ownership", () => {
     expect(
       (await request(app).get("/api/cards/favorites").set("Cookie", alice.cookie)).body.cards,
     ).toHaveLength(0);
+
+    await pool.query("DELETE FROM cards WHERE user_id = $1", [alice.user.id]);
+    const twentyCardId = randomUUID();
+    const thirtyCardId = randomUUID();
+    await pool.query(
+      `INSERT INTO cards (id, user_id, set_id, name, purchase_price, status)
+       VALUES ($1, $2, $3, 'Owned $20', 20, 'owned'),
+              ($4, $2, $3, 'Owned $30', 30, 'owned'),
+              ($5, $2, $3, 'Wishlist $100', 100, 'wishlist')`,
+      [twentyCardId, alice.user.id, aliceSet.body.set.id, thirtyCardId, randomUUID()],
+    );
+    await pool.query(
+      `INSERT INTO cards (id, user_id, set_id, name, purchase_price, status)
+       VALUES ($1, $2, $3, 'Bob Private $999', 999, 'owned')`,
+      [randomUUID(), bob.user.id, bobsSet.body.set.id],
+    );
+    await pool.query(
+      "INSERT INTO stars (id, user_id, card_id) VALUES ($1, $2, $3)",
+      [randomUUID(), alice.user.id, twentyCardId],
+    );
+    const dashboard = await request(app).get("/api/dashboard").set("Cookie", alice.cookie);
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.body.totalCards).toBe(2);
+    expect(dashboard.body.totalSpent).toBe("50.00");
+    expect(dashboard.body.totalStarred).toBe(1);
+    expect(dashboard.body.cardsBySet).toEqual([
+      expect.objectContaining({ set_name: "Alice Set", card_count: 2 }),
+    ]);
+    const bobsDashboard = await request(app).get("/api/dashboard").set("Cookie", bob.cookie);
+    expect(bobsDashboard.body.totalCards).toBe(1);
+    expect(Number(bobsDashboard.body.totalSpent)).toBe(999);
+    expect(bobsDashboard.body.cardsBySet).toEqual([
+      expect.objectContaining({ set_name: "Bob Set", card_count: 1 }),
+    ]);
+    expect((await request(app).get("/api/dashboard")).status).toBe(401);
+
     await request(app).post("/api/auth/logout").set("Cookie", alice.cookie).send({});
     await request(app).post("/api/auth/logout").set("Cookie", bob.cookie).send({});
   });

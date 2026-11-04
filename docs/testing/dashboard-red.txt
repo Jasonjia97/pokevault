@@ -1,0 +1,32 @@
+
+ RUN  v5.1.0 /home/runner/workspace
+
+ ❯ tests/database-sets.test.ts (8 tests | 1 failed | 7 skipped) 1300ms
+   ❯ PokéVault authentication and set ownership (8)
+     × isolates card data and calculates the signed-in user's dashboard totals 1288ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/database-sets.test.ts > PokéVault authentication and set ownership > isolates card data and calculates the signed-in user's dashboard totals
+AssertionError: expected '150.00' to be '50.00' // Object.is equality
+
+Expected: "50.00"
+Received: "150.00"
+
+ ❯ tests/database-sets.test.ts:417:39
+    415|     expect(dashboard.status).toBe(200);
+    416|     expect(dashboard.body.totalCards).toBe(2);
+    417|     expect(dashboard.body.totalSpent).toBe("50.00");
+       |                                       ^
+    418|     expect(dashboard.body.totalStarred).toBe(1);
+    419|     expect(dashboard.body.cardsBySet).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 skipped (8)
+   Start at  04:38:29
+   Duration  2.43s (tests 64%, import 25%, transform 11%)
+
+EXIT_CODE=1

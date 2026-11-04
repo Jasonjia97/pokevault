@@ -1,0 +1,10 @@
+
+ RUN  v5.1.0 /home/runner/workspace
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 7 skipped (8)
+   Start at  04:51:18
+   Duration  2.13s (tests 72%, import 24%, transform 4%)
+
+EXIT_CODE=0
