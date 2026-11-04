@@ -1,4 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
+import {
+  validateCardValues,
+  type CardValidationErrors,
+  type CardValidationField,
+} from "./cardValidation";
 
 export type PokemonCard = {
   id: string;
@@ -79,15 +84,25 @@ function CardForm({
       : { ...emptyCard, set_id: sets[0]?.id ?? "" },
   );
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<CardValidationErrors>({});
   const [busy, setBusy] = useState(false);
 
   function change(field: keyof CardValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[field as CardValidationField];
+      return next;
+    });
+    setError("");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    const validationErrors = validateCardValues(values, sets);
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
     setBusy(true);
     try {
       await onSave(values);
@@ -111,25 +126,32 @@ function CardForm({
           <button className="secondary-button" onClick={onCancel}>Back to cards</button>
         </div>
       ) : (
-        <form className="card-form" onSubmit={submit}>
+        <form className="card-form" onSubmit={submit} noValidate>
           <label htmlFor="card-name">Card name</label>
           <input
             id="card-name"
             required
             maxLength={200}
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? "card-name-error" : undefined}
             value={values.name}
             onChange={(event) => change("name", event.target.value)}
           />
+          {fieldErrors.name && <p className="field-error" id="card-name-error" role="alert">{fieldErrors.name}</p>}
 
           <label htmlFor="card-set">Set</label>
           <select
             id="card-set"
             required
+            aria-invalid={Boolean(fieldErrors.set_id)}
+            aria-describedby={fieldErrors.set_id ? "card-set-error" : undefined}
             value={values.set_id}
             onChange={(event) => change("set_id", event.target.value)}
           >
+            <option value="">Choose a set</option>
             {sets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}
           </select>
+          {fieldErrors.set_id && <p className="field-error" id="card-set-error" role="alert">{fieldErrors.set_id}</p>}
 
           <div className="card-form-grid">
             <div>
@@ -160,9 +182,12 @@ function CardForm({
                 min="0"
                 max="99999999.99"
                 step="0.01"
+                aria-invalid={Boolean(fieldErrors.purchase_price)}
+                aria-describedby={fieldErrors.purchase_price ? "card-price-error" : undefined}
                 value={values.purchase_price}
                 onChange={(event) => change("purchase_price", event.target.value)}
               />
+              {fieldErrors.purchase_price && <p className="field-error" id="card-price-error" role="alert">{fieldErrors.purchase_price}</p>}
             </div>
             <div>
               <label htmlFor="card-date">Acquisition date</label>

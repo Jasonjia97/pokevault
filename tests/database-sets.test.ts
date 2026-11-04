@@ -326,12 +326,38 @@ describe("PokéVault authentication and set ownership", () => {
       .post("/api/cards")
       .set("Cookie", cookie)
       .send({ set_id: set.body.set.id, name: " " });
+    const missingSet = await request(app)
+      .post("/api/cards")
+      .set("Cookie", cookie)
+      .send({ name: "Pikachu" });
     const negativePrice = await request(app)
       .post("/api/cards")
       .set("Cookie", cookie)
       .send({ set_id: set.body.set.id, name: "Invalid price", purchase_price: "-1" });
+    const extraPrecision = await request(app)
+      .post("/api/cards")
+      .set("Cookie", cookie)
+      .send({ set_id: set.body.set.id, name: "Invalid precision", purchase_price: "1.234" });
+
+    const validCard = await request(app)
+      .post("/api/cards")
+      .set("Cookie", cookie)
+      .send({ set_id: set.body.set.id, name: "Valid card", purchase_price: "1.25" });
+    const invalidUpdate = await request(app)
+      .put(`/api/cards/${validCard.body.card.id}`)
+      .set("Cookie", cookie)
+      .send({ set_id: set.body.set.id, name: "Valid card", purchase_price: "-0.01" });
+
     expect(missingName.status).toBe(400);
+    expect(missingName.body.error).toBe("Card name is required.");
+    expect(missingSet.status).toBe(400);
+    expect(missingSet.body.error).toBe("Choose a valid set.");
     expect(negativePrice.status).toBe(400);
+    expect(negativePrice.body.error).toBe(
+      "Purchase price must be a nonnegative amount with up to two decimals.",
+    );
+    expect(extraPrecision.status).toBe(400);
+    expect(invalidUpdate.status).toBe(400);
     await request(app).post("/api/auth/logout").set("Cookie", cookie).send({});
   });
 });
