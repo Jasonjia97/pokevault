@@ -4,6 +4,7 @@ import {
   type CardValidationErrors,
   type CardValidationField,
 } from "./cardValidation";
+import { downloadCardsCsv } from "./csvDownload";
 
 export type PokemonCard = {
   id: string;
@@ -338,6 +339,15 @@ export function CardWorkspace({
     }
   }
 
+  async function downloadCsv() {
+    setError("");
+    try {
+      await downloadCardsCsv();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The CSV download could not be completed.");
+    }
+  }
+
   async function deleteCard() {
     if (!card || !window.confirm(`Delete “${card.name}”? This cannot be undone.`)) return;
     try {
@@ -436,12 +446,21 @@ export function CardWorkspace({
                 </p>
               </div>
               {!isFavorites && (
-                <button
-                  className="primary-button"
-                  onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}
-                >
-                  ＋ {isWishlist ? "Add a wishlist card" : "Add a card"}
-                </button>
+                <div className="card-form-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => void downloadCsv()}
+                  >
+                    Download CSV
+                  </button>
+                  <button
+                    className="primary-button"
+                    onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}
+                  >
+                    ＋ {isWishlist ? "Add a wishlist card" : "Add a card"}
+                  </button>
+                </div>
               )}
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
