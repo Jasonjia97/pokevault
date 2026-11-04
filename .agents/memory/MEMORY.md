@@ -1,0 +1,1 @@
+- [Validated Replit config edits](replit-config-edits.md) — replace `.replit` through TOML validation; direct edits and merge markers can break recovery.
