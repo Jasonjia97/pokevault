@@ -1,7 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useState, type FormEvent } from "react";
 import { CardWorkspace } from "./CardPages";
 import { Dashboard } from "./Dashboard";
 import { downloadCardsCsv } from "./csvDownload";
+import { ThemeToggle } from "./ThemeToggle";
+import { readThemePreference, saveThemePreference, type Theme } from "./themePreference";
 
 type User = {
   id: string;
@@ -48,7 +50,15 @@ function Brand() {
   );
 }
 
-function AuthPage({ onSignedIn }: { onSignedIn: (user: User) => void }) {
+function AuthPage({
+  onSignedIn,
+  theme,
+  onToggleTheme,
+}: {
+  onSignedIn: (user: User) => void;
+  theme: Theme;
+  onToggleTheme: () => void;
+}) {
   const [mode, setMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -81,7 +91,10 @@ function AuthPage({ onSignedIn }: { onSignedIn: (user: User) => void }) {
     <main className="auth-layout">
       <header className="topbar auth-topbar">
         <Brand />
-        <span className="topbar-note">A private home for your collection</span>
+        <div className="header-actions">
+          <span className="topbar-note">A private home for your collection</span>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </header>
       <section className="auth-content">
         <div className="auth-intro">
@@ -168,6 +181,8 @@ function SetsPage({
   onCreate,
   onNavigate,
   onLogout,
+  theme,
+  onToggleTheme,
 }: {
   user: User;
   sets: PokemonSet[];
@@ -175,6 +190,8 @@ function SetsPage({
   onCreate: (name: string) => Promise<void>;
   onNavigate: (path: string) => void;
   onLogout: () => Promise<void>;
+  theme: Theme;
+  onToggleTheme: () => void;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -209,6 +226,7 @@ function SetsPage({
         <Brand />
         <div className="account-controls">
           <span className="account-email">{user.email}</span>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           <button className="secondary-button" type="button" onClick={onLogout}>
             Sign out
           </button>
@@ -311,12 +329,22 @@ function SetsPage({
 }
 
 export default function App() {
+  const [theme, setTheme] = useState<Theme>(() => readThemePreference());
   const [user, setUser] = useState<User | null>(null);
   const [sets, setSets] = useState<PokemonSet[]>([]);
   const [path, setPath] = useState(window.location.pathname);
   const [checkingSession, setCheckingSession] = useState(true);
   const [loadingSets, setLoadingSets] = useState(false);
   const [loadError, setLoadError] = useState("");
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    saveThemePreference(theme);
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((current) => current === "dark" ? "light" : "dark");
+  }
 
   function navigate(nextPath: string, replace = false) {
     if (replace) window.history.replaceState({}, "", nextPath);
@@ -402,6 +430,8 @@ export default function App() {
   if (!user) {
     return (
       <AuthPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onSignedIn={(signedInUser) => {
           setUser(signedInUser);
           navigate("/sets", true);
@@ -419,7 +449,13 @@ export default function App() {
         </div>
       )}
       {path === "/dashboard" ? (
-        <Dashboard userEmail={user.email} onNavigate={navigate} onLogout={logout} />
+        <Dashboard
+          userEmail={user.email}
+          onNavigate={navigate}
+          onLogout={logout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
       ) : path.startsWith("/cards") || path.startsWith("/wishlist") || path === "/favorites" ? (
         <CardWorkspace
           path={path}
@@ -427,6 +463,8 @@ export default function App() {
           userEmail={user.email}
           onNavigate={navigate}
           onLogout={logout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       ) : (
         <SetsPage
@@ -436,6 +474,8 @@ export default function App() {
           onCreate={createSet}
           onNavigate={navigate}
           onLogout={logout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
     </>

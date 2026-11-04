@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "./ThemeToggle";
+import type { Theme } from "./themePreference";
 
 type DashboardData = {
   totalCards: number;
@@ -17,10 +19,14 @@ export function Dashboard({
   userEmail,
   onNavigate,
   onLogout,
+  theme,
+  onToggleTheme,
 }: {
   userEmail: string;
   onNavigate: (path: string) => void;
   onLogout: () => Promise<void>;
+  theme: Theme;
+  onToggleTheme: () => void;
 }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
@@ -46,6 +52,7 @@ export function Dashboard({
         </a>
         <div className="account-controls">
           <span className="account-email">{userEmail}</span>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           <button className="secondary-button" type="button" onClick={onLogout}>Sign out</button>
         </div>
       </header>
