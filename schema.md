@@ -1,7 +1,10 @@
 # PokéVault database schema
 
-This document describes the PostgreSQL development schema after migrations
-`0001_auth.sql` and `0002_database_sets.sql`.
+This document was checked against the PostgreSQL development and production
+databases, as well as migrations `0001_auth.sql` and `0002_database_sets.sql`.
+Both databases have the same five public tables: `users`, `user_sessions`,
+`sets`, `cards`, and `stars`. PostgreSQL's `DECIMAL` synonym is reported as
+`NUMERIC`; types below use the catalog's actual type and precision.
 
 ## `users`
 
@@ -49,8 +52,6 @@ Additional constraints:
 
 ## `cards`
 
-The relational table is created now, but card CRUD is not part of Feature 2.
-
 | Column | PostgreSQL type | Null | Default | Key / rule |
 |---|---|---:|---|---|
 | `id` | `UUID` | No | — | Primary key |
@@ -59,7 +60,7 @@ The relational table is created now, but card CRUD is not part of Feature 2.
 | `name` | `TEXT` | No | — | Card name |
 | `card_number` | `TEXT` | Yes | — | Optional card number |
 | `condition` | `TEXT` | Yes | — | Optional condition |
-| `purchase_price` | `DECIMAL(10,2)` | No | `0` | Check constraint requires a nonnegative value |
+| `purchase_price` | `NUMERIC(10,2)` | No | `0` | Check constraint requires a nonnegative value |
 | `acquired_date` | `DATE` | Yes | — | Optional acquisition date |
 | `notes` | `TEXT` | Yes | — | Optional note |
 | `status` | `TEXT` | No | `'owned'` | Check constraint permits only `owned` or `wishlist` |
@@ -103,3 +104,31 @@ Additional constraints:
 - PostgreSQL row-level security is not enabled; access scoping is enforced by
   the application queries, with composite foreign keys protecting record
   relationships.
+
+## Constraints and indexes
+
+The catalog confirms these key constraints:
+
+- `users`: primary key `users_pkey (id)`; unique `users_email_key (email)`.
+- `sets`: primary key `sets_pkey (id)`; foreign key
+  `sets_user_id_fkey (user_id) → users(id)` with `ON DELETE CASCADE`;
+  unique `(user_id, name)` and `(id, user_id)`.
+- `cards`: primary key `cards_pkey (id)`; foreign key
+  `cards_user_id_fkey (user_id) → users(id)` with `ON DELETE CASCADE`;
+  composite foreign key `(set_id, user_id) → sets(id, user_id)` with
+  `ON DELETE CASCADE`; unique `(id, user_id)`; checks `purchase_price >= 0`
+  and `status IN ('owned', 'wishlist')`.
+- `stars`: primary key `stars_pkey (id)`; foreign key
+  `stars_user_id_fkey (user_id) → users(id)` with `ON DELETE CASCADE`;
+  composite foreign key `(card_id, user_id) → cards(id, user_id)` with
+  `ON DELETE CASCADE`; unique `(user_id, card_id)`.
+- `user_sessions`: primary key `user_sessions_pkey (sid)`.
+
+The database also has these non-unique supporting indexes:
+
+- `cards_user_set_idx` on `cards (user_id, set_id)`.
+- `stars_user_idx` on `stars (user_id)`.
+- `user_sessions_expire_idx` on `user_sessions (expire)`.
+
+Primary-key and unique-constraint indexes are present as catalog indexes too;
+they are described above with their constraints.

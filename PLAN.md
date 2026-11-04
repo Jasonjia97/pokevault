@@ -83,3 +83,23 @@ The biggest risks are reliable email/password sessions, authorization on every c
 Do not edit Sections 1–7 to hide changes to the original plan.
 Suggested table columns: Planned feature | Shipped / Changed / Cut | Status (Done/Backlogged) | Learning / Why.
 -->
+
+## 8. Plan vs. Reality
+
+All seven required features and all three custom features were implemented and
+merged to `main`. No feature was cut or left backlogged. The implementation
+uses CSS and parameterized `pg` queries rather than the proposed Tailwind and
+Drizzle stack.
+
+| Planned feature | Shipped / Changed / Cut | Status | Learning / Why |
+|---|---|---|---|
+| 1. Sign up and login | Shipped signup, login, logout, bcrypt password hashes, and PostgreSQL-backed sessions. | Done | Persistent server-side sessions support returning users without exposing passwords. |
+| 2. Relational model and sets | Shipped the `users`, `sets`, `cards`, and `stars` tables, ownership constraints, and private set creation/listing. Added `user_sessions` for persistent authentication sessions. | Done | The actual schema uses `TIMESTAMPTZ` for `users.created_at`; the other product-table creation timestamps are `TIMESTAMP`. |
+| 3. Card CRUD | Shipped private card creation, listing, detail, editing, and confirmed deletion. | Done | Ownership is enforced in API queries as well as by database relationships. |
+| 4. Validation | Shipped client- and server-side checks for required card name/set and nonnegative prices, with inline error messages. | Done | Server validation remains necessary even when the interface validates first. |
+| 5. Stars | Shipped starring/unstarring and a Favorites page using the shared `stars` table. | Done | A composite foreign key prevents users from starring another user's card. |
+| 6. Find things | Shipped case-insensitive card-name search, set filtering, and sorting by purchase price or acquisition date. | Done | Search, filtering, and sorting can be combined while keeping results scoped to the signed-in user. |
+| 7. Dashboard | Shipped owned-card count, owned-card spending, starred-card count, and cards-by-set chart. | Done | Wishlist cards are excluded from owned metrics; the $20 + $30 test expects exactly $50. |
+| 8. Custom — Wishlist | Shipped a separate Wishlist, owned/wishlist status, and moving wishlist cards to owned status. | Done | Wishlist records are excluded from owned counts, spending, and owned-set chart data. |
+| 9. Custom — CSV export | Shipped an authenticated, same-origin download of the current user's owned and wishlist cards, including notes. | Done | CSV quoting and spreadsheet-safety handling are covered by automated tests. |
+| 10. Custom — Dark mode | Shipped a Light/Dark toggle, dark default, and preference persistence across refreshes. | Done | A saved preference is restored when the app loads. |
