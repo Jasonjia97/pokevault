@@ -39,6 +39,39 @@ type CardPayload = {
   notes: string | null;
 };
 
+type CardSort = "added_desc" | "price_desc" | "price_asc" | "date_desc" | "date_asc";
+
+const CARD_SORT_ORDERS: Record<CardSort, string> = {
+  added_desc: "c.created_at DESC, c.name ASC",
+  price_desc: "c.purchase_price DESC, c.name ASC",
+  price_asc: "c.purchase_price ASC, c.name ASC",
+  date_desc: "c.acquired_date DESC NULLS LAST, c.created_at DESC, c.name ASC",
+  date_asc: "c.acquired_date ASC NULLS LAST, c.created_at DESC, c.name ASC",
+};
+
+function parseCardListFilters(query: Record<string, unknown>) {
+  const search = typeof query.search === "string" ? query.search.trim() : "";
+  const setId = typeof query.set_id === "string" ? query.set_id : "";
+  const sort = typeof query.sort === "string" ? query.sort : "added_desc";
+
+  if (search.length > 200) {
+    return { error: "Search must be 200 characters or fewer." };
+  }
+  if (setId && !UUID_PATTERN.test(setId)) {
+    return { error: "Choose a valid set filter." };
+  }
+  if (!Object.hasOwn(CARD_SORT_ORDERS, sort)) {
+    return { error: "Choose a valid sort order." };
+  }
+  return {
+    value: {
+      search,
+      setId: setId || null,
+      sort: sort as CardSort,
+    },
+  };
+}
+
 function parseCardPayload(body: any): { value?: CardPayload; error?: string } {
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const setId = typeof body?.set_id === "string" ? body.set_id : "";
@@ -355,12 +388,19 @@ export function createApp(pool: Pool) {
   cardsRouter.use(requireAuth);
 
   cardsRouter.get("/", async (req, res, next) => {
+    const parsed = parseCardListFilters(req.query as Record<string, unknown>);
+    if (!parsed.value) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
     try {
       const result = await pool.query(
         `${CARD_SELECT}
          WHERE c.user_id = $1
-         ORDER BY c.created_at DESC, c.name ASC`,
-        [req.session.userId],
+           AND ($2 = '' OR c.name ILIKE '%' || $2 || '%')
+           AND ($3::uuid IS NULL OR c.set_id = $3)
+         ORDER BY ${CARD_SORT_ORDERS[parsed.value.sort]}`,
+        [req.session.userId, parsed.value.search, parsed.value.setId],
       );
       res.json({ cards: result.rows });
     } catch (error) {
@@ -369,13 +409,23 @@ export function createApp(pool: Pool) {
   });
 
   cardsRouter.get("/favorites", async (req, res, next) => {
+    const parsed = parseCardListFilters(req.query as Record<string, unknown>);
+    if (!parsed.value) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+    const orderBy = parsed.value.sort === "added_desc"
+      ? "st.created_at DESC, c.name ASC"
+      : CARD_SORT_ORDERS[parsed.value.sort];
     try {
       const result = await pool.query(
         `${CARD_SELECT}
          JOIN stars st ON st.card_id = c.id AND st.user_id = c.user_id
          WHERE c.user_id = $1 AND st.user_id = $1
-         ORDER BY st.created_at DESC, c.name ASC`,
-        [req.session.userId],
+           AND ($2 = '' OR c.name ILIKE '%' || $2 || '%')
+           AND ($3::uuid IS NULL OR c.set_id = $3)
+         ORDER BY ${orderBy}`,
+        [req.session.userId, parsed.value.search, parsed.value.setId],
       );
       res.json({ cards: result.rows });
     } catch (error) {

@@ -240,12 +240,19 @@ export function CardWorkspace({
   const [card, setCard] = useState<PokemonCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [setFilter, setSetFilter] = useState("");
+  const [sort, setSort] = useState("added_desc");
   const idMatch = path.match(/^\/cards\/([^/]+)(?:\/(edit))?$/);
   const isNew = path === "/cards/new";
   const isList = path === "/cards";
   const isFavorites = path === "/favorites";
   const cardId = idMatch?.[1];
   const isEdit = idMatch?.[2] === "edit";
+  const filterParams = new URLSearchParams({ sort });
+  if (search.trim()) filterParams.set("search", search.trim());
+  if (setFilter) filterParams.set("set_id", setFilter);
+  const filterQuery = filterParams.toString();
 
   useEffect(() => {
     let active = true;
@@ -255,7 +262,7 @@ export function CardWorkspace({
 
     const load = isList || isFavorites
       ? apiRequest<{ cards: PokemonCard[] }>(
-          isFavorites ? "/api/cards/favorites" : "/api/cards",
+          `${isFavorites ? "/api/cards/favorites" : "/api/cards"}?${filterQuery}`,
         ).then(({ cards: result }) => {
           if (active) setCards(result);
         })
@@ -274,7 +281,7 @@ export function CardWorkspace({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [path, isList, isFavorites, cardId]);
+  }, [path, isList, isFavorites, cardId, filterQuery]);
 
   async function save(values: CardValues) {
     const editing = Boolean(card && isEdit);
@@ -371,6 +378,45 @@ export function CardWorkspace({
               {!isFavorites && <button className="primary-button" onClick={() => onNavigate("/cards/new")}>＋ Add a card</button>}
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
+            <div className="card-filters" aria-label="Find and sort cards">
+              <label>
+                Search by card name
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search cards"
+                />
+              </label>
+              <label>
+                Pokémon set
+                <select value={setFilter} onChange={(event) => setSetFilter(event.target.value)}>
+                  <option value="">All sets</option>
+                  {sets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}
+                </select>
+              </label>
+              <label>
+                Sort by
+                <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                  <option value="added_desc">Recently added</option>
+                  <option value="price_desc">Price: high to low</option>
+                  <option value="price_asc">Price: low to high</option>
+                  <option value="date_desc">Acquisition date: newest</option>
+                  <option value="date_asc">Acquisition date: oldest</option>
+                </select>
+              </label>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setSetFilter("");
+                  setSort("added_desc");
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
             {loading ? <div className="empty-state">Loading cards…</div> : cards.length === 0 ? (
               <div className="empty-state">
                 <h2>{isFavorites ? "No favorites yet" : "No cards yet"}</h2>
