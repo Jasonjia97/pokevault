@@ -411,12 +411,14 @@ export function CardWorkspace({
           <button className="text-button" onClick={() => onNavigate("/wishlist")}>Wishlist</button>
           <DashboardNavigationButton onNavigate={onNavigate} />
           <span aria-hidden="true">/</span>
-          {isFavorites ? <span>Favorites</span> : isWishlist ? <span>Wishlist</span> : (
+          {isFavorites ? (
+            <span className="collection-nav-current" aria-current="page">Favorites</span>
+          ) : (
             <button
               className="text-button"
-              onClick={() => onNavigate(path.startsWith("/wishlist") ? "/wishlist" : "/favorites")}
+              onClick={() => onNavigate("/favorites")}
             >
-              {path.startsWith("/wishlist") ? "Wishlist" : "Favorites"}
+              Favorites
             </button>
           )}
         </nav>

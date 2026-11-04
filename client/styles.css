@@ -558,7 +558,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .dashboard-bar-track span { display: block; height: 100%; min-width: 5px; border-radius: inherit; background: linear-gradient(90deg, #8a63dc, #c5a2ff); }
 .dashboard-bar-row strong { color: #f4f1fb; text-align: right; }
 .cards-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 36px; color: #898b9a; font-size: 13px; }
-.cards-nav .text-button { color: #c9b1ff; }
+.cards-nav .text-button,
 .dashboard-nav-button {
   display: inline-flex;
   min-height: 40px;
@@ -574,8 +574,23 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   text-decoration: none;
   white-space: nowrap;
 }
+.cards-nav .text-button { cursor: pointer; }
+.cards-nav .text-button:hover,
 .dashboard-nav-button:hover { background: #7956b3; color: #fff; }
+.cards-nav .text-button:focus-visible,
 .dashboard-nav-button:focus-visible { outline: 3px solid #c6a9ff; outline-offset: 3px; }
+.collection-nav-current {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 15px;
+  border: 1px solid #9c7bd0;
+  border-radius: 10px;
+  background: #6846a0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+}
 .card-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 30px; }
 .card-page-heading h1 { margin: 8px 0; color: #f4f1fb; font-size: clamp(30px, 5vw, 44px); }
 .card-page-heading p { margin: 0; color: #a5a5b2; }
@@ -758,7 +773,6 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 }
 
 :root[data-theme="light"] .mode-switch button,
-:root[data-theme="light"] .cards-nav .text-button,
 :root[data-theme="light"] .brand > span:last-child > span,
 :root[data-theme="light"] .auth-intro h1 span,
 :root[data-theme="light"] .eyebrow,
@@ -766,17 +780,21 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   color: #6745a1;
 }
 
-:root[data-theme="light"] .dashboard-nav-button {
+:root[data-theme="light"] .cards-nav .text-button,
+:root[data-theme="light"] .dashboard-nav-button,
+:root[data-theme="light"] .collection-nav-current {
   border-color: #6745a1;
   background: #6745a1;
   color: #fff;
 }
 
+:root[data-theme="light"] .cards-nav .text-button:hover,
 :root[data-theme="light"] .dashboard-nav-button:hover {
   background: #56378f;
   color: #fff;
 }
 
+:root[data-theme="light"] .cards-nav .text-button:focus-visible,
 :root[data-theme="light"] .dashboard-nav-button:focus-visible {
   outline-color: #6745a1;
 }
