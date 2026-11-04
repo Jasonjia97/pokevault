@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DashboardNavigationButton } from "./DashboardNavigationButton";
 import { ThemeToggle } from "./ThemeToggle";
 import type { Theme } from "./themePreference";
 
@@ -62,6 +63,7 @@ export function Dashboard({
           <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
           <button className="text-button" onClick={() => onNavigate("/wishlist")}>Wishlist</button>
           <button className="text-button" onClick={() => onNavigate("/favorites")}>Favorites</button>
+          <DashboardNavigationButton onNavigate={onNavigate} />
         </nav>
         <div className="card-page-heading">
           <div><span className="eyebrow">YOUR COLLECTION</span><h1>Dashboard</h1><p>A summary of your Pokémon collection.</p></div>

@@ -557,8 +557,25 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .dashboard-bar-track { height: 14px; overflow: hidden; border-radius: 99px; background: #11121b; }
 .dashboard-bar-track span { display: block; height: 100%; min-width: 5px; border-radius: inherit; background: linear-gradient(90deg, #8a63dc, #c5a2ff); }
 .dashboard-bar-row strong { color: #f4f1fb; text-align: right; }
-.cards-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; color: #898b9a; font-size: 13px; }
+.cards-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 36px; color: #898b9a; font-size: 13px; }
 .cards-nav .text-button { color: #c9b1ff; }
+.dashboard-nav-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  border: 1px solid #9c7bd0;
+  border-radius: 10px;
+  background: #6846a0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dashboard-nav-button:hover { background: #7956b3; color: #fff; }
+.dashboard-nav-button:focus-visible { outline: 3px solid #c6a9ff; outline-offset: 3px; }
 .card-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 30px; }
 .card-page-heading h1 { margin: 8px 0; color: #f4f1fb; font-size: clamp(30px, 5vw, 44px); }
 .card-page-heading p { margin: 0; color: #a5a5b2; }
@@ -747,6 +764,21 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 :root[data-theme="light"] .eyebrow,
 :root[data-theme="light"] .set-count {
   color: #6745a1;
+}
+
+:root[data-theme="light"] .dashboard-nav-button {
+  border-color: #6745a1;
+  background: #6745a1;
+  color: #fff;
+}
+
+:root[data-theme="light"] .dashboard-nav-button:hover {
+  background: #56378f;
+  color: #fff;
+}
+
+:root[data-theme="light"] .dashboard-nav-button:focus-visible {
+  outline-color: #6745a1;
 }
 
 :root[data-theme="light"] .set-count {

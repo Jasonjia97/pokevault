@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState, type FormEvent } from "react";
 import { CardWorkspace } from "./CardPages";
 import { Dashboard } from "./Dashboard";
+import { DashboardNavigationButton } from "./DashboardNavigationButton";
 import { downloadCardsCsv } from "./csvDownload";
 import { ThemeToggle } from "./ThemeToggle";
 import { readThemePreference, saveThemePreference, type Theme } from "./themePreference";
@@ -252,9 +253,7 @@ function SetsPage({
           <button className="secondary-button" onClick={() => onNavigate("/wishlist")}>
             Wishlist
           </button>
-          <button className="secondary-button" onClick={() => onNavigate("/dashboard")}>
-            Dashboard
-          </button>
+          <DashboardNavigationButton onNavigate={onNavigate} />
         </div>
 
         <section className="create-panel" aria-labelledby="create-heading">
