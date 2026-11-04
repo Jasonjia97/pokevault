@@ -540,10 +540,12 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .card-page-heading h1 { margin: 8px 0; color: #f4f1fb; font-size: clamp(30px, 5vw, 44px); }
 .card-page-heading p { margin: 0; color: #a5a5b2; }
 .card-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
-.card-list-item { overflow: hidden; border: 1px solid #30303d; border-radius: 14px; background: #1a1b27; }
-.card-list-open { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto; gap: 20px; width: 100%; padding: 18px 20px; border: 0; background: transparent; color: #aaaab8; text-align: left; cursor: pointer; }
+.card-list-item { display: flex; align-items: stretch; overflow: hidden; border: 1px solid #30303d; border-radius: 14px; background: #1a1b27; }
+.card-list-open { display: grid; flex: 1; grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto; gap: 20px; width: auto; padding: 18px 20px; border: 0; background: transparent; color: #aaaab8; text-align: left; cursor: pointer; }
 .card-list-open:hover { background: #222331; }
 .card-name { color: #f4f1fb; font-weight: 650; }
+.star-button { min-width: 56px; border: 0; border-left: 1px solid #30303d; background: transparent; color: #d4b56c; font-size: 22px; cursor: pointer; }
+.star-button:hover, .star-button[aria-pressed="true"] { background: #252332; color: #f1ce72; }
 .card-editor, .card-detail { padding: 28px; border: 1px solid #30303d; border-radius: 18px; background: #1a1b27; }
 .card-form { display: grid; gap: 10px; }
 .card-form label { margin-top: 8px; color: #d8d6e2; font-size: 13px; font-weight: 600; }
@@ -561,7 +563,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 @media (max-width: 640px) {
   .cards-main { width: calc(100% - 32px); }
   .card-page-heading { align-items: flex-start; flex-direction: column; }
-  .card-list-open { grid-template-columns: 1fr auto; gap: 7px 14px; }
+  .card-list-open { grid-template-columns: 1fr auto; gap: 7px 14px; padding: 15px; }
   .card-list-open > span:nth-child(2) { grid-column: 1; }
   .card-list-open > span:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
   .card-editor, .card-detail { padding: 20px; }

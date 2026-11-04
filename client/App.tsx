@@ -398,7 +398,7 @@ export default function App() {
           <button type="button" onClick={() => window.location.reload()}>Retry</button>
         </div>
       )}
-      {path.startsWith("/cards") ? (
+      {path.startsWith("/cards") || path === "/favorites" ? (
         <CardWorkspace
           path={path}
           sets={sets}

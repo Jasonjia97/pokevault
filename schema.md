@@ -74,8 +74,7 @@ Additional constraints:
 
 ## `stars`
 
-The relational table is created now, but star/unstar behavior is not part of
-Feature 2.
+This shared user-to-card junction table stores each user's starred cards.
 
 | Column | PostgreSQL type | Null | Default | Key / rule |
 |---|---|---:|---|---|

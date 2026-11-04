@@ -271,6 +271,7 @@ describe("PokéVault authentication and set ownership", () => {
   });
 
   it("isolates card listing, details, edits, deletion, and set assignment by user", async () => {
+    expect((await request(app).get("/api/cards/favorites")).status).toBe(401);
     const alice = await signUp(`card-owner-${randomUUID()}@example.test`);
     const bob = await signUp(`card-visitor-${randomUUID()}@example.test`);
     const aliceSet = await request(app)
@@ -287,6 +288,33 @@ describe("PokéVault authentication and set ownership", () => {
       .send({ set_id: aliceSet.body.set.id, name: "Private card" });
     expect(card.status).toBe(201);
     const cardId = card.body.card.id as string;
+
+    expect((await request(app).get("/api/cards/favorites").set("Cookie", bob.cookie)).body.cards)
+      .toHaveLength(0);
+    expect(
+      (await request(app).post(`/api/cards/${cardId}/star`).set("Cookie", bob.cookie)).status,
+    ).toBe(404);
+    expect(
+      (await request(app).delete(`/api/cards/${cardId}/star`).set("Cookie", bob.cookie)).status,
+    ).toBe(404);
+    expect(
+      (await request(app).post(`/api/cards/${cardId}/star`).set("Cookie", alice.cookie)).body,
+    ).toEqual({ starred: true });
+    await request(app).post(`/api/cards/${cardId}/star`).set("Cookie", alice.cookie);
+    const savedStar = await pool.query(
+      "SELECT user_id, card_id FROM stars WHERE user_id = $1 AND card_id = $2",
+      [alice.user.id, cardId],
+    );
+    expect(savedStar.rows).toHaveLength(1);
+    const aliceFavorites = await request(app)
+      .get("/api/cards/favorites")
+      .set("Cookie", alice.cookie);
+    expect(aliceFavorites.body.cards.map((favorite: { id: string }) => favorite.id))
+      .toContain(cardId);
+    expect(aliceFavorites.body.cards.find((favorite: { id: string }) => favorite.id === cardId)
+      .is_starred).toBe(true);
+    expect((await request(app).get("/api/cards/favorites").set("Cookie", bob.cookie)).body.cards)
+      .toHaveLength(0);
 
     const bobsCards = await request(app).get("/api/cards").set("Cookie", bob.cookie);
     expect(bobsCards.status).toBe(200);
@@ -312,6 +340,12 @@ describe("PokéVault authentication and set ownership", () => {
     expect((await request(app).get(`/api/cards/${cardId}`).set("Cookie", alice.cookie)).status)
       .toBe(200);
     expect((await request(app).get("/api/cards")).status).toBe(401);
+    expect(
+      (await request(app).delete(`/api/cards/${cardId}/star`).set("Cookie", alice.cookie)).body,
+    ).toEqual({ starred: false });
+    expect(
+      (await request(app).get("/api/cards/favorites").set("Cookie", alice.cookie)).body.cards,
+    ).toHaveLength(0);
     await request(app).post("/api/auth/logout").set("Cookie", alice.cookie).send({});
     await request(app).post("/api/auth/logout").set("Cookie", bob.cookie).send({});
   });
