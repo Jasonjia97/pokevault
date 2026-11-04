@@ -1,0 +1,29 @@
+Command:
+npx vitest run tests/database-sets.test.ts -t "isolates card listing"
+Temporary change: removed `WHERE c.user_id = $1` from GET /api/cards.
+Process exit code: 1
+
+ RUN  v5.1.0 /home/runner/workspace
+
+ ❯ tests/database-sets.test.ts (8 tests | 1 failed | 7 skipped) 1134ms
+   ❯ PokéVault authentication and set ownership (8)
+     × isolates card listing, details, edits, deletion, and set assignment by user 1123ms
+
+ FAIL  tests/database-sets.test.ts > PokéVault authentication and set ownership > isolates card listing, details, edits, deletion, and set assignment by user
+AssertionError: expected [ { …(10) }, { …(10) } ] to have a length of +0 but got 2
+
+- Expected
++ Received
+- 0
++ 2
+
+ ❯ tests/database-sets.test.ts:293:34
+     291|     const bobsCards = await request(app).get("/api/cards").set("Cookie…
+     292|     expect(bobsCards.status).toBe(200);
+     293|     expect(bobsCards.body.cards).toHaveLength(0);
+        |                                  ^
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 skipped (8)
+   Start at  03:36:35
+   Duration  2.26s (tests 64%, import 31%, transform 4%)

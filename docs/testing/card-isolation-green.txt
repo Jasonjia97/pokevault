@@ -1,0 +1,11 @@
+Command:
+npx vitest run tests/database-sets.test.ts -t "isolates card listing"
+Temporary authorization bug: reverted; owner filter restored.
+Process exit code: 0
+
+ RUN  v5.1.0 /home/runner/workspace
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 7 skipped (8)
+   Start at  03:36:49
+   Duration  1.98s (tests 63%, import 31%, transform 5%)
