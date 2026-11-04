@@ -278,6 +278,10 @@ describe("PokéVault authentication and set ownership", () => {
       .post("/api/sets")
       .set("Cookie", alice.cookie)
       .send({ name: "Alice Set" });
+    const aliceOtherSet = await request(app)
+      .post("/api/sets")
+      .set("Cookie", alice.cookie)
+      .send({ name: "Alice Other Set" });
     const bobsSet = await request(app)
       .post("/api/sets")
       .set("Cookie", bob.cookie)
@@ -288,6 +292,52 @@ describe("PokéVault authentication and set ownership", () => {
       .send({ set_id: aliceSet.body.set.id, name: "Private card" });
     expect(card.status).toBe(201);
     const cardId = card.body.card.id as string;
+
+    const pikachuEx = await request(app)
+      .post("/api/cards")
+      .set("Cookie", alice.cookie)
+      .send({
+        set_id: aliceSet.body.set.id,
+        name: "Pikachu ex",
+        purchase_price: "20",
+        acquired_date: "2024-10-10",
+      });
+    const pikachuVmax = await request(app)
+      .post("/api/cards")
+      .set("Cookie", alice.cookie)
+      .send({
+        set_id: aliceSet.body.set.id,
+        name: "Pikachu VMAX",
+        purchase_price: "50",
+        acquired_date: "2025-01-20",
+      });
+    const pikachuOtherSet = await request(app)
+      .post("/api/cards")
+      .set("Cookie", alice.cookie)
+      .send({
+        set_id: aliceOtherSet.body.set.id,
+        name: "Pikachu V",
+        purchase_price: "80",
+        acquired_date: "2023-03-01",
+      });
+    expect(pikachuEx.status).toBe(201);
+    expect(pikachuVmax.status).toBe(201);
+    expect(pikachuOtherSet.status).toBe(201);
+
+    const combinedFilter = await request(app)
+      .get(`/api/cards?search=PIKACHU&set_id=${aliceSet.body.set.id}&sort=price_desc`)
+      .set("Cookie", alice.cookie);
+    expect(combinedFilter.body.cards.map((item: { name: string }) => item.name))
+      .toEqual(["Pikachu VMAX", "Pikachu ex"]);
+    const acquisitionSort = await request(app)
+      .get(`/api/cards?search=pikachu&set_id=${aliceSet.body.set.id}&sort=date_asc`)
+      .set("Cookie", alice.cookie);
+    expect(acquisitionSort.body.cards.map((item: { name: string }) => item.name))
+      .toEqual(["Pikachu ex", "Pikachu VMAX"]);
+    const privateFilter = await request(app)
+      .get(`/api/cards?search=pikachu&set_id=${aliceSet.body.set.id}&sort=price_desc`)
+      .set("Cookie", bob.cookie);
+    expect(privateFilter.body.cards).toHaveLength(0);
 
     expect((await request(app).get("/api/cards/favorites").set("Cookie", bob.cookie)).body.cards)
       .toHaveLength(0);
