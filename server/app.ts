@@ -625,6 +625,41 @@ export function createApp(pool: Pool) {
   app.use("/api/auth", authRouter);
   app.use("/api/sets", setsRouter);
   app.use("/api/cards", cardsRouter);
+  app.get("/api/dashboard", requireAuth, async (req, res, next) => {
+    try {
+      const [summary, cardsBySet] = await Promise.all([
+        pool.query(
+          `SELECT
+             (SELECT COUNT(*)::int FROM cards
+              WHERE user_id = $1 AND status = 'owned') AS total_cards,
+             (SELECT COALESCE(SUM(purchase_price), 0)::numeric FROM cards
+              WHERE user_id = $1 AND status = 'owned') AS total_spent,
+             (SELECT COUNT(*)::int FROM stars WHERE user_id = $1) AS starred_count`,
+          [req.session.userId],
+        ),
+        pool.query(
+          `SELECT s.id AS set_id, s.name AS set_name, COUNT(c.id)::int AS card_count
+           FROM sets s
+           LEFT JOIN cards c ON c.set_id = s.id
+             AND c.user_id = s.user_id AND c.status = 'owned'
+           WHERE s.user_id = $1
+           GROUP BY s.id, s.name
+           HAVING COUNT(c.id) > 0
+           ORDER BY s.name ASC`,
+          [req.session.userId],
+        ),
+      ]);
+      const totals = summary.rows[0];
+      res.json({
+        totalCards: totals.total_cards,
+        totalSpent: totals.total_spent,
+        totalStarred: totals.starred_count,
+        cardsBySet: cardsBySet.rows,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
   app.use(
     (
       error: unknown,

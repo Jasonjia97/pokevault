@@ -534,6 +534,18 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 }
 
 .cards-main { width: min(920px, calc(100% - 48px)); min-height: 68vh; margin: 0 auto; padding: 34px 0 72px; }
+.dashboard-main { width: min(1040px, calc(100% - 48px)); min-height: 68vh; margin: 0 auto; padding: 34px 0 72px; }
+.dashboard-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.dashboard-metric, .dashboard-chart { padding: 22px; border: 1px solid #30303d; border-radius: 16px; background: #1a1b27; }
+.dashboard-metric { display: grid; gap: 12px; color: #aaa6ba; }
+.dashboard-metric strong { color: #f4f1fb; font-size: 32px; }
+.dashboard-chart figcaption { margin-bottom: 24px; color: #f4f1fb; font-size: 20px; font-weight: 700; }
+.dashboard-bars { display: grid; gap: 18px; }
+.dashboard-bar-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(100px, 3fr) 36px; align-items: center; gap: 14px; color: #d8d6e2; }
+.dashboard-bar-label { overflow-wrap: anywhere; }
+.dashboard-bar-track { height: 14px; overflow: hidden; border-radius: 99px; background: #11121b; }
+.dashboard-bar-track span { display: block; height: 100%; min-width: 5px; border-radius: inherit; background: linear-gradient(90deg, #8a63dc, #c5a2ff); }
+.dashboard-bar-row strong { color: #f4f1fb; text-align: right; }
 .cards-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; color: #898b9a; font-size: 13px; }
 .cards-nav .text-button { color: #c9b1ff; }
 .card-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 30px; }
@@ -568,6 +580,10 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   .cards-main { width: calc(100% - 32px); }
   .card-page-heading { align-items: flex-start; flex-direction: column; }
   .card-list-open { grid-template-columns: 1fr auto; gap: 7px 14px; padding: 15px; }
+  .dashboard-main { width: calc(100% - 32px); }
+  .dashboard-metrics { grid-template-columns: 1fr; }
+  .dashboard-bar-row { grid-template-columns: 1fr 36px; }
+  .dashboard-bar-track { grid-column: 1 / -1; grid-row: 2; }
   .card-filters { grid-template-columns: 1fr; }
   .card-list-open > span:nth-child(2) { grid-column: 1; }
   .card-list-open > span:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; align-self: center; }

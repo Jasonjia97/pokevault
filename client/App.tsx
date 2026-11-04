@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CardWorkspace } from "./CardPages";
+import { Dashboard } from "./Dashboard";
 
 type User = {
   id: string;
@@ -217,6 +218,9 @@ function SetsPage({
           <button className="secondary-button" onClick={() => onNavigate("/cards")}>
             View cards
           </button>
+          <button className="secondary-button" onClick={() => onNavigate("/dashboard")}>
+            Dashboard
+          </button>
         </div>
 
         <section className="create-panel" aria-labelledby="create-heading">
@@ -398,7 +402,9 @@ export default function App() {
           <button type="button" onClick={() => window.location.reload()}>Retry</button>
         </div>
       )}
-      {path.startsWith("/cards") || path === "/favorites" ? (
+      {path === "/dashboard" ? (
+        <Dashboard userEmail={user.email} onNavigate={navigate} onLogout={logout} />
+      ) : path.startsWith("/cards") || path === "/favorites" ? (
         <CardWorkspace
           path={path}
           sets={sets}
