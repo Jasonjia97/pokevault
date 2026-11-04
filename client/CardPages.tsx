@@ -16,6 +16,7 @@ export type PokemonCard = {
   acquired_date: string | null;
   notes: string | null;
   created_at: string;
+  is_starred: boolean;
 };
 
 export type CardSet = {
@@ -242,6 +243,7 @@ export function CardWorkspace({
   const idMatch = path.match(/^\/cards\/([^/]+)(?:\/(edit))?$/);
   const isNew = path === "/cards/new";
   const isList = path === "/cards";
+  const isFavorites = path === "/favorites";
   const cardId = idMatch?.[1];
   const isEdit = idMatch?.[2] === "edit";
 
@@ -251,8 +253,10 @@ export function CardWorkspace({
     setLoading(true);
     setCard(null);
 
-    const load = isList
-      ? apiRequest<{ cards: PokemonCard[] }>("/api/cards").then(({ cards: result }) => {
+    const load = isList || isFavorites
+      ? apiRequest<{ cards: PokemonCard[] }>(
+          isFavorites ? "/api/cards/favorites" : "/api/cards",
+        ).then(({ cards: result }) => {
           if (active) setCards(result);
         })
       : cardId
@@ -270,7 +274,7 @@ export function CardWorkspace({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [path, isList, cardId]);
+  }, [path, isList, isFavorites, cardId]);
 
   async function save(values: CardValues) {
     const editing = Boolean(card && isEdit);
@@ -302,6 +306,27 @@ export function CardWorkspace({
     }
   }
 
+  async function toggleStar(target: PokemonCard) {
+    const nextStarred = !target.is_starred;
+    try {
+      await apiRequest<{ starred: boolean }>(`/api/cards/${target.id}/star`, {
+        method: nextStarred ? "POST" : "DELETE",
+      });
+      setCard((current) =>
+        current?.id === target.id ? { ...current, is_starred: nextStarred } : current,
+      );
+      setCards((current) =>
+        isFavorites && !nextStarred
+          ? current.filter((item) => item.id !== target.id)
+          : current.map((item) =>
+              item.id === target.id ? { ...item, is_starred: nextStarred } : item,
+            ),
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update favorites.");
+    }
+  }
+
   return (
     <main className="sets-layout">
       <header className="topbar">
@@ -322,8 +347,10 @@ export function CardWorkspace({
         <nav className="cards-nav" aria-label="Collection navigation">
           <button className="text-button" onClick={() => onNavigate("/sets")}>← Sets</button>
           <span aria-hidden="true">/</span>
-          {isList ? <span>Cards</span> : (
-            <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
+          <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
+          <span aria-hidden="true">/</span>
+          {isFavorites ? <span>Favorites</span> : (
+            <button className="text-button" onClick={() => onNavigate("/favorites")}>Favorites</button>
           )}
         </nav>
 
@@ -333,22 +360,22 @@ export function CardWorkspace({
           loading ? <div className="empty-state">Loading card…</div> : card ? (
             <CardForm card={card} sets={sets} onCancel={() => onNavigate(`/cards/${card.id}`)} onSave={save} />
           ) : <div className="empty-state">{error || "Card not found."}</div>
-        ) : isList ? (
+        ) : isList || isFavorites ? (
           <section className="cards-list-page">
             <div className="card-page-heading">
               <div>
-                <span className="eyebrow">YOUR COLLECTION</span>
-                <h1>Your cards</h1>
-                <p>Keep the details of the cards you collect.</p>
+                <span className="eyebrow">{isFavorites ? "YOUR FAVORITES" : "YOUR COLLECTION"}</span>
+                <h1>{isFavorites ? "Favorite cards" : "Your cards"}</h1>
+                <p>{isFavorites ? "Cards you have starred for quick access." : "Keep the details of the cards you collect."}</p>
               </div>
-              <button className="primary-button" onClick={() => onNavigate("/cards/new")}>＋ Add a card</button>
+              {!isFavorites && <button className="primary-button" onClick={() => onNavigate("/cards/new")}>＋ Add a card</button>}
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             {loading ? <div className="empty-state">Loading cards…</div> : cards.length === 0 ? (
               <div className="empty-state">
-                <h2>No cards yet</h2>
-                <p>Add a card to one of your sets to start your collection.</p>
-                <button className="primary-button" onClick={() => onNavigate("/cards/new")}>Add your first card</button>
+                <h2>{isFavorites ? "No favorites yet" : "No cards yet"}</h2>
+                <p>{isFavorites ? "Star a card to see it here." : "Add a card to one of your sets to start your collection."}</p>
+                {!isFavorites && <button className="primary-button" onClick={() => onNavigate("/cards/new")}>Add your first card</button>}
               </div>
             ) : (
               <ul className="card-list">
@@ -358,6 +385,15 @@ export function CardWorkspace({
                       <span className="card-name">{item.name}</span>
                       <span>{item.set_name}{item.card_number ? ` · #${item.card_number}` : ""}</span>
                       <span>${Number(item.purchase_price).toFixed(2)}</span>
+                    </button>
+                    <button
+                      className="star-button"
+                      type="button"
+                      aria-label={item.is_starred ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
+                      aria-pressed={item.is_starred}
+                      onClick={() => void toggleStar(item)}
+                    >
+                      {item.is_starred ? "★" : "☆"}
                     </button>
                   </li>
                 ))}
@@ -374,6 +410,14 @@ export function CardWorkspace({
                   <p>{card.set_name}{card.card_number ? ` · #${card.card_number}` : ""}</p>
                 </div>
                 <div className="card-form-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    aria-pressed={card.is_starred}
+                    onClick={() => void toggleStar(card)}
+                  >
+                    {card.is_starred ? "★ Remove favorite" : "☆ Add to favorites"}
+                  </button>
                   <button className="secondary-button" onClick={() => onNavigate(`/cards/${card.id}/edit`)}>Edit card</button>
                   <button className="danger-button" onClick={deleteCard}>Delete card</button>
                 </div>

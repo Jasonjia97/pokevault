@@ -20,7 +20,11 @@ const CARD_SELECT = `
   SELECT c.id, c.set_id, s.name AS set_name, c.name, c.card_number,
          c.condition, c.purchase_price,
          TO_CHAR(c.acquired_date, 'YYYY-MM-DD') AS acquired_date,
-         c.notes, c.created_at
+         c.notes, c.created_at,
+         EXISTS (
+           SELECT 1 FROM stars st
+           WHERE st.card_id = c.id AND st.user_id = c.user_id
+         ) AS is_starred
   FROM cards c
   JOIN sets s ON s.id = c.set_id AND s.user_id = c.user_id
 `;
@@ -359,6 +363,71 @@ export function createApp(pool: Pool) {
         [req.session.userId],
       );
       res.json({ cards: result.rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.get("/favorites", async (req, res, next) => {
+    try {
+      const result = await pool.query(
+        `${CARD_SELECT}
+         JOIN stars st ON st.card_id = c.id AND st.user_id = c.user_id
+         WHERE c.user_id = $1 AND st.user_id = $1
+         ORDER BY st.created_at DESC, c.name ASC`,
+        [req.session.userId],
+      );
+      res.json({ cards: result.rows });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.post("/:id/star", async (req, res, next) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+      res.status(404).json({ error: "Card not found." });
+      return;
+    }
+    try {
+      const ownedCard = await pool.query(
+        "SELECT id FROM cards WHERE id = $1 AND user_id = $2",
+        [req.params.id, req.session.userId],
+      );
+      if (!ownedCard.rowCount) {
+        res.status(404).json({ error: "Card not found." });
+        return;
+      }
+      await pool.query(
+        `INSERT INTO stars (id, user_id, card_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, card_id) DO NOTHING`,
+        [randomUUID(), req.session.userId, req.params.id],
+      );
+      res.json({ starred: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.delete("/:id/star", async (req, res, next) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+      res.status(404).json({ error: "Card not found." });
+      return;
+    }
+    try {
+      const ownedCard = await pool.query(
+        "SELECT id FROM cards WHERE id = $1 AND user_id = $2",
+        [req.params.id, req.session.userId],
+      );
+      if (!ownedCard.rowCount) {
+        res.status(404).json({ error: "Card not found." });
+        return;
+      }
+      await pool.query(
+        "DELETE FROM stars WHERE user_id = $1 AND card_id = $2",
+        [req.session.userId, req.params.id],
+      );
+      res.json({ starred: false });
     } catch (error) {
       next(error);
     }
