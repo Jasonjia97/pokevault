@@ -408,6 +408,11 @@ describe("PokéVault authentication and set ownership", () => {
       [twentyCardId, alice.user.id, aliceSet.body.set.id, thirtyCardId, randomUUID()],
     );
     await pool.query(
+      `INSERT INTO cards (id, user_id, set_id, name, purchase_price, status)
+       VALUES ($1, $2, $3, 'Bob Private $999', 999, 'owned')`,
+      [randomUUID(), bob.user.id, bobsSet.body.set.id],
+    );
+    await pool.query(
       "INSERT INTO stars (id, user_id, card_id) VALUES ($1, $2, $3)",
       [randomUUID(), alice.user.id, twentyCardId],
     );
@@ -420,9 +425,11 @@ describe("PokéVault authentication and set ownership", () => {
       expect.objectContaining({ set_name: "Alice Set", card_count: 2 }),
     ]);
     const bobsDashboard = await request(app).get("/api/dashboard").set("Cookie", bob.cookie);
-    expect(bobsDashboard.body.totalCards).toBe(0);
-    expect(Number(bobsDashboard.body.totalSpent)).toBe(0);
-    expect(bobsDashboard.body.cardsBySet).toEqual([]);
+    expect(bobsDashboard.body.totalCards).toBe(1);
+    expect(Number(bobsDashboard.body.totalSpent)).toBe(999);
+    expect(bobsDashboard.body.cardsBySet).toEqual([
+      expect.objectContaining({ set_name: "Bob Set", card_count: 1 }),
+    ]);
     expect((await request(app).get("/api/dashboard")).status).toBe(401);
 
     await request(app).post("/api/auth/logout").set("Cookie", alice.cookie).send({});
