@@ -228,6 +228,17 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   line-height: 1.5;
 }
 
+.field-error {
+  margin: -4px 0 2px;
+  color: #ffb8c0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.card-form [aria-invalid="true"] {
+  border-color: #e68a98;
+}
+
 .mode-switch {
   margin: 22px 0 0;
   color: #a1a1af;
