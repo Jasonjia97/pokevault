@@ -218,6 +218,9 @@ function SetsPage({
           <button className="secondary-button" onClick={() => onNavigate("/cards")}>
             View cards
           </button>
+          <a className="secondary-button" href="/api/cards/export.csv" download="pokevault-cards.csv">
+            Download CSV
+          </a>
           <button className="secondary-button" onClick={() => onNavigate("/wishlist")}>
             Wishlist
           </button>
