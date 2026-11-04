@@ -5,6 +5,7 @@ import {
   type CardValidationField,
 } from "./cardValidation";
 import { downloadCardsCsv } from "./csvDownload";
+import { DashboardNavigationButton } from "./DashboardNavigationButton";
 import { ThemeToggle } from "./ThemeToggle";
 import type { Theme } from "./themePreference";
 
@@ -408,14 +409,16 @@ export function CardWorkspace({
           <span aria-hidden="true">/</span>
           <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
           <button className="text-button" onClick={() => onNavigate("/wishlist")}>Wishlist</button>
-          <button className="text-button" onClick={() => onNavigate("/dashboard")}>Dashboard</button>
+          <DashboardNavigationButton onNavigate={onNavigate} />
           <span aria-hidden="true">/</span>
-          {isFavorites ? <span>Favorites</span> : isWishlist ? <span>Wishlist</span> : (
+          {isFavorites ? (
+            <span className="collection-nav-current" aria-current="page">Favorites</span>
+          ) : (
             <button
               className="text-button"
-              onClick={() => onNavigate(path.startsWith("/wishlist") ? "/wishlist" : "/favorites")}
+              onClick={() => onNavigate("/favorites")}
             >
-              {path.startsWith("/wishlist") ? "Wishlist" : "Favorites"}
+              Favorites
             </button>
           )}
         </nav>
