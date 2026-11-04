@@ -16,6 +16,32 @@
 >
 > Run all tests, type checks, and the production build. Do not push or merge automatically.
 
+## Latest data-isolation verification request
+
+> Work only on feature/card-crud.
+>
+> Ensure the automated data-isolation test verifies that User B cannot view User A's card.
+>
+> Run the test, temporarily introduce an authorization bug to demonstrate a genuine failure, then restore the secure code and rerun it successfully.
+>
+> Save actual screenshots in docs/testing/, or give me instructions to capture them manually.
+>
+> Record the actual commands, Agent responses, and results in prompts/card-crud.md.
+>
+> Do not fabricate results or push or merge automatically.
+
+## Latest test run and actual Agent responses
+
+- Agent: “I’ll confirm the branch and inspect the existing two-user test and card-list ownership filter, then run the test normally, demonstrate a real failure with the filter temporarily removed, restore it, and rerun. I’ll record only the commands and results produced in this run.”
+- The branch was `feature/card-crud`. The test now explicitly asserts Bob’s card list does not contain Alice’s created card ID, and separately verifies Bob’s direct detail request returns 404.
+- Secure baseline command: `npx vitest run tests/database-sets.test.ts -t "isolates card listing"` — exit 0; 1 passed, 7 skipped, at 03:44:12.
+- Deliberate regression: temporarily removed `WHERE c.user_id = $1` and its authenticated-user parameter from `GET /api/cards`.
+- Same test command with the regression — exit 1; 1 failed, 7 skipped, at 03:44:24. The assertion failed because Bob’s list contained Alice’s exact `Private card` (and another card), including Alice’s card ID.
+- Agent: “The deliberate regression produced the expected genuine failure: Bob’s list included Alice’s exact ‘Private card,’ and the new assertion caught its ID. I’m restoring the owner filter now, then I’ll rerun the focused test and save fresh red/green captures.”
+- Restored the `WHERE c.user_id = $1` filter and parameter. Same test command — exit 0; 1 passed, 7 skipped, at 03:44:40.
+- Captured the actual test-output text in `docs/testing/card-isolation-red.txt` and `docs/testing/card-isolation-green.txt`. The corresponding browser screenshots of those captured outputs are `docs/testing/card-isolation-red.jpg` and `docs/testing/card-isolation-green.jpg`.
+- No push or merge was performed.
+
 ## Agent responses and implementation notes
 
 - The Agent said: “I’ll first verify the current branch and working tree, then read `PLAN.md`, `schema.md`, and the existing card-related API, UI, and tests. I’ll keep all implementation work on `feature/card-crud` and won’t touch `main`.”

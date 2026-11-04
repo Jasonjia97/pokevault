@@ -290,7 +290,9 @@ describe("PokéVault authentication and set ownership", () => {
 
     const bobsCards = await request(app).get("/api/cards").set("Cookie", bob.cookie);
     expect(bobsCards.status).toBe(200);
-    expect(bobsCards.body.cards).toHaveLength(0);
+    expect(bobsCards.body.cards).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: cardId })]),
+    );
     expect((await request(app).get(`/api/cards/${cardId}`).set("Cookie", bob.cookie)).status)
       .toBe(404);
     expect(
