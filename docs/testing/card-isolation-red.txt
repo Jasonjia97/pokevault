@@ -1,0 +1,61 @@
+
+ RUN  v5.1.0 /home/runner/workspace
+
+ ❯ tests/database-sets.test.ts (8 tests | 1 failed | 7 skipped) 853ms
+   ❯ PokéVault authentication and set ownership (8)
+     × isolates card listing, details, edits, deletion, and set assignment by user 845ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/database-sets.test.ts > PokéVault authentication and set ownership > isolates card listing, details, edits, deletion, and set assignment by user
+AssertionError: expected [ { …(10) }, { …(10) } ] to not deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
+-   ObjectContaining {
++ [
++   {
++     "acquired_date": null,
++     "card_number": null,
++     "condition": null,
++     "created_at": "2026-11-04T03:44:26.185Z",
+      "id": "0e525ceb-f0bd-4c0b-b0c7-338dea97bc90",
++     "name": "Private card",
++     "notes": null,
++     "purchase_price": "0.00",
++     "set_id": "7ca4981b-e01f-41d4-a289-892053a15d53",
++     "set_name": "Alice Set",
++   },
++   {
++     "acquired_date": "2026-11-03",
++     "card_number": "238/191",
++     "condition": "Near Mint",
++     "created_at": "2026-11-04T03:31:36.637Z",
++     "id": "8653624c-3888-42db-bfcd-d9af191a8e89",
++     "name": "Pikachu ex",
++     "notes": null,
++     "purchase_price": "50.00",
++     "set_id": "eb9ef12a-d18e-4bcb-b023-123f7de89bc4",
++     "set_name": "Surging Sparks",
+    },
+  ]
+
+ ❯ tests/database-sets.test.ts:293:38
+    291|     const bobsCards = await request(app).get("/api/cards").set("Cookie…
+    292|     expect(bobsCards.status).toBe(200);
+    293|     expect(bobsCards.body.cards).not.toEqual(
+       |                                      ^
+    294|       expect.arrayContaining([expect.objectContaining({ id: cardId })]…
+    295|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 skipped (8)
+   Start at  03:44:24
+   Duration  1.82s (tests 56%, import 34%, transform 9%)
+
+EXIT_CODE=1

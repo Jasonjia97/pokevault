@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { CardWorkspace } from "./CardPages";
 
 type User = {
   id: string;
@@ -163,12 +164,14 @@ function SetsPage({
   sets,
   loading,
   onCreate,
+  onNavigate,
   onLogout,
 }: {
   user: User;
   sets: PokemonSet[];
   loading: boolean;
   onCreate: (name: string) => Promise<void>;
+  onNavigate: (path: string) => void;
   onLogout: () => Promise<void>;
 }) {
   const [name, setName] = useState("");
@@ -211,6 +214,9 @@ function SetsPage({
           <span className="set-count">
             {sets.length} {sets.length === 1 ? "set" : "sets"}
           </span>
+          <button className="secondary-button" onClick={() => onNavigate("/cards")}>
+            View cards
+          </button>
         </div>
 
         <section className="create-panel" aria-labelledby="create-heading">
@@ -287,9 +293,22 @@ function SetsPage({
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [sets, setSets] = useState<PokemonSet[]>([]);
+  const [path, setPath] = useState(window.location.pathname);
   const [checkingSession, setCheckingSession] = useState(true);
   const [loadingSets, setLoadingSets] = useState(false);
   const [loadError, setLoadError] = useState("");
+
+  function navigate(nextPath: string, replace = false) {
+    if (replace) window.history.replaceState({}, "", nextPath);
+    else window.history.pushState({}, "", nextPath);
+    setPath(nextPath);
+  }
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -297,11 +316,16 @@ export default function App() {
       .then(({ user: currentUser }) => {
         if (active) {
           setUser(currentUser);
-          window.history.replaceState({}, "", currentUser ? "/sets" : "/");
+          const currentPath = window.location.pathname;
+          if (currentUser && currentPath === "/") navigate("/sets", true);
+          if (!currentUser && currentPath !== "/") navigate("/", true);
         }
       })
       .catch(() => {
-        if (active) setUser(null);
+        if (active) {
+          setUser(null);
+          if (window.location.pathname !== "/") navigate("/", true);
+        }
       })
       .finally(() => {
         if (active) setCheckingSession(false);
@@ -348,7 +372,7 @@ export default function App() {
     await apiRequest<void>("/api/auth/logout", { method: "POST" });
     setUser(null);
     setSets([]);
-    window.history.replaceState({}, "", "/");
+    navigate("/", true);
   }
 
   if (checkingSession) {
@@ -360,7 +384,7 @@ export default function App() {
       <AuthPage
         onSignedIn={(signedInUser) => {
           setUser(signedInUser);
-          window.history.replaceState({}, "", "/sets");
+          navigate("/sets", true);
         }}
       />
     );
@@ -374,13 +398,24 @@ export default function App() {
           <button type="button" onClick={() => window.location.reload()}>Retry</button>
         </div>
       )}
-      <SetsPage
-        user={user}
-        sets={sets}
-        loading={loadingSets}
-        onCreate={createSet}
-        onLogout={logout}
-      />
+      {path.startsWith("/cards") ? (
+        <CardWorkspace
+          path={path}
+          sets={sets}
+          userEmail={user.email}
+          onNavigate={navigate}
+          onLogout={logout}
+        />
+      ) : (
+        <SetsPage
+          user={user}
+          sets={sets}
+          loading={loadingSets}
+          onCreate={createSet}
+          onNavigate={navigate}
+          onLogout={logout}
+        />
+      )}
     </>
   );
 }

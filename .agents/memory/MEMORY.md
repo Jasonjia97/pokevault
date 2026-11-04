@@ -1,1 +1,2 @@
 - [Validated Replit config edits](replit-config-edits.md) — replace `.replit` through TOML validation; direct edits and merge markers can break recovery.
+- [PostgreSQL date API format](postgres-date-format.md) — serialize `DATE` values as `YYYY-MM-DD` for browser date inputs instead of exposing a JS timestamp.
