@@ -557,9 +557,12 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .card-filters input, .card-filters select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #3c3b4b; border-radius: 8px; background: #12131d; color: #f4f1fb; font: inherit; }
 .card-filters input:focus, .card-filters select:focus { outline: 2px solid #a883ed; outline-offset: 1px; }
 .card-list-item { display: flex; align-items: stretch; overflow: hidden; border: 1px solid #30303d; border-radius: 14px; background: #1a1b27; }
-.card-list-open { display: grid; flex: 1; grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto; gap: 20px; width: auto; padding: 18px 20px; border: 0; background: transparent; color: #aaaab8; text-align: left; cursor: pointer; }
+.card-list-open { display: grid; flex: 1; grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto auto; align-items: center; gap: 20px; width: auto; padding: 18px 20px; border: 0; background: transparent; color: #aaaab8; text-align: left; cursor: pointer; }
 .card-list-open:hover { background: #222331; }
 .card-name { color: #f4f1fb; font-weight: 650; }
+.card-status-badge { justify-self: start; padding: 5px 9px; border: 1px solid #484254; border-radius: 999px; color: #c9b1ff; font-size: 11px; font-weight: 700; }
+.card-status-badge.status-wishlist { border-color: #7f653a; background: #2a2419; color: #f1ce72; }
+.wishlist-own-button { align-self: center; flex: 0 0 auto; margin: 8px; white-space: nowrap; }
 .star-button { min-width: 56px; border: 0; border-left: 1px solid #30303d; background: transparent; color: #d4b56c; font-size: 22px; cursor: pointer; }
 .star-button:hover, .star-button[aria-pressed="true"] { background: #252332; color: #f1ce72; }
 .card-editor, .card-detail { padding: 28px; border: 1px solid #30303d; border-radius: 18px; background: #1a1b27; }
@@ -587,6 +590,8 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   .card-filters { grid-template-columns: 1fr; }
   .card-list-open > span:nth-child(2) { grid-column: 1; }
   .card-list-open > span:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .card-list-open > span:nth-child(4) { grid-column: 1; }
+  .wishlist-own-button { margin: 6px; padding: 9px 10px; font-size: 12px; }
   .card-editor, .card-detail { padding: 20px; }
   .card-form-grid, .card-details-grid { grid-template-columns: 1fr; }
 }

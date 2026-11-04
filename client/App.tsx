@@ -218,6 +218,9 @@ function SetsPage({
           <button className="secondary-button" onClick={() => onNavigate("/cards")}>
             View cards
           </button>
+          <button className="secondary-button" onClick={() => onNavigate("/wishlist")}>
+            Wishlist
+          </button>
           <button className="secondary-button" onClick={() => onNavigate("/dashboard")}>
             Dashboard
           </button>
@@ -404,7 +407,7 @@ export default function App() {
       )}
       {path === "/dashboard" ? (
         <Dashboard userEmail={user.email} onNavigate={navigate} onLogout={logout} />
-      ) : path.startsWith("/cards") || path === "/favorites" ? (
+      ) : path.startsWith("/cards") || path.startsWith("/wishlist") || path === "/favorites" ? (
         <CardWorkspace
           path={path}
           sets={sets}

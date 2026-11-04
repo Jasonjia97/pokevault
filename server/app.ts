@@ -18,7 +18,7 @@ const UUID_PATTERN =
 const PgSessionStore = connectPgSimple(session);
 const CARD_SELECT = `
   SELECT c.id, c.set_id, s.name AS set_name, c.name, c.card_number,
-         c.condition, c.purchase_price,
+         c.condition, c.purchase_price, c.status,
          TO_CHAR(c.acquired_date, 'YYYY-MM-DD') AS acquired_date,
          c.notes, c.created_at,
          EXISTS (
@@ -37,6 +37,7 @@ type CardPayload = {
   purchasePrice: string;
   acquiredDate: string | null;
   notes: string | null;
+  status: "owned" | "wishlist";
 };
 
 type CardSort = "added_desc" | "price_desc" | "price_asc" | "date_desc" | "date_asc";
@@ -53,6 +54,7 @@ function parseCardListFilters(query: Record<string, unknown>) {
   const search = typeof query.search === "string" ? query.search.trim() : "";
   const setId = typeof query.set_id === "string" ? query.set_id : "";
   const sort = typeof query.sort === "string" ? query.sort : "added_desc";
+  const status = typeof query.status === "string" ? query.status : "";
 
   if (search.length > 200) {
     return { error: "Search must be 200 characters or fewer." };
@@ -63,11 +65,15 @@ function parseCardListFilters(query: Record<string, unknown>) {
   if (!Object.hasOwn(CARD_SORT_ORDERS, sort)) {
     return { error: "Choose a valid sort order." };
   }
+  if (status && status !== "owned" && status !== "wishlist") {
+    return { error: "Choose a valid card status." };
+  }
   return {
     value: {
       search,
       setId: setId || null,
       sort: sort as CardSort,
+      status: status || null,
     },
   };
 }
@@ -78,6 +84,10 @@ function parseCardPayload(body: any): { value?: CardPayload; error?: string } {
   if (!name) return { error: "Card name is required." };
   if (name.length > 200) return { error: "Card name must be 200 characters or fewer." };
   if (!UUID_PATTERN.test(setId)) return { error: "Choose a valid set." };
+  const status = body?.status === undefined ? "owned" : body.status;
+  if (status !== "owned" && status !== "wishlist") {
+    return { error: "Choose whether this card is owned or on your wishlist." };
+  }
 
   const priceText =
     body?.purchase_price === undefined || body.purchase_price === ""
@@ -121,6 +131,7 @@ function parseCardPayload(body: any): { value?: CardPayload; error?: string } {
         purchasePrice: priceText,
         acquiredDate,
         notes: optionalText(body?.notes, "Notes", 4000),
+        status,
       },
     };
   } catch (error) {
@@ -399,8 +410,14 @@ export function createApp(pool: Pool) {
          WHERE c.user_id = $1
            AND ($2 = '' OR c.name ILIKE '%' || $2 || '%')
            AND ($3::uuid IS NULL OR c.set_id = $3)
+           AND ($4::text IS NULL OR c.status = $4)
          ORDER BY ${CARD_SORT_ORDERS[parsed.value.sort]}`,
-        [req.session.userId, parsed.value.search, parsed.value.setId],
+        [
+          req.session.userId,
+          parsed.value.search,
+          parsed.value.setId,
+          parsed.value.status,
+        ],
       );
       res.json({ cards: result.rows });
     } catch (error) {
@@ -424,8 +441,14 @@ export function createApp(pool: Pool) {
          WHERE c.user_id = $1 AND st.user_id = $1
            AND ($2 = '' OR c.name ILIKE '%' || $2 || '%')
            AND ($3::uuid IS NULL OR c.set_id = $3)
+           AND ($4::text IS NULL OR c.status = $4)
          ORDER BY ${orderBy}`,
-        [req.session.userId, parsed.value.search, parsed.value.setId],
+        [
+          req.session.userId,
+          parsed.value.search,
+          parsed.value.setId,
+          parsed.value.status,
+        ],
       );
       res.json({ cards: result.rows });
     } catch (error) {
@@ -502,8 +525,8 @@ export function createApp(pool: Pool) {
       const inserted = await pool.query<{ id: string }>(
         `INSERT INTO cards
            (id, user_id, set_id, name, card_number, condition,
-            purchase_price, acquired_date, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             purchase_price, acquired_date, notes, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING id`,
         [
           randomUUID(),
@@ -515,6 +538,7 @@ export function createApp(pool: Pool) {
           card.purchasePrice,
           card.acquiredDate,
           card.notes,
+          card.status,
         ],
       );
       const result = await pool.query(
@@ -578,8 +602,8 @@ export function createApp(pool: Pool) {
       await pool.query(
         `UPDATE cards
          SET set_id = $1, name = $2, card_number = $3, condition = $4,
-             purchase_price = $5, acquired_date = $6, notes = $7
-         WHERE id = $8 AND user_id = $9`,
+              purchase_price = $5, acquired_date = $6, notes = $7, status = $8
+         WHERE id = $9 AND user_id = $10`,
         [
           card.setId,
           card.name,
@@ -588,10 +612,42 @@ export function createApp(pool: Pool) {
           card.purchasePrice,
           card.acquiredDate,
           card.notes,
+          card.status,
           req.params.id,
           req.session.userId,
         ],
       );
+      const result = await pool.query(
+        `${CARD_SELECT} WHERE c.id = $1 AND c.user_id = $2`,
+        [req.params.id, req.session.userId],
+      );
+      res.json({ card: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  cardsRouter.patch("/:id/status", async (req, res, next) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+      res.status(404).json({ error: "Card not found." });
+      return;
+    }
+    const status = req.body?.status;
+    if (status !== "owned" && status !== "wishlist") {
+      res.status(400).json({ error: "Choose whether this card is owned or on your wishlist." });
+      return;
+    }
+    try {
+      const updated = await pool.query(
+        `UPDATE cards SET status = $1
+         WHERE id = $2 AND user_id = $3
+         RETURNING id`,
+        [status, req.params.id, req.session.userId],
+      );
+      if (!updated.rowCount) {
+        res.status(404).json({ error: "Card not found." });
+        return;
+      }
       const result = await pool.query(
         `${CARD_SELECT} WHERE c.id = $1 AND c.user_id = $2`,
         [req.params.id, req.session.userId],
