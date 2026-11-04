@@ -4,6 +4,7 @@ import {
   type CardValidationErrors,
   type CardValidationField,
 } from "./cardValidation";
+import { downloadCardsCsv } from "./csvDownload";
 
 export type PokemonCard = {
   id: string;
@@ -338,6 +339,15 @@ export function CardWorkspace({
     }
   }
 
+  async function downloadCsv() {
+    setError("");
+    try {
+      await downloadCardsCsv();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The CSV download could not be completed.");
+    }
+  }
+
   async function deleteCard() {
     if (!card || !window.confirm(`Delete “${card.name}”? This cannot be undone.`)) return;
     try {
@@ -437,9 +447,13 @@ export function CardWorkspace({
               </div>
               {!isFavorites && (
                 <div className="card-form-actions">
-                  <a className="secondary-button" href="/api/cards/export.csv" download="pokevault-cards.csv">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => void downloadCsv()}
+                  >
                     Download CSV
-                  </a>
+                  </button>
                   <button
                     className="primary-button"
                     onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}

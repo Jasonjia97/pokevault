@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CardWorkspace } from "./CardPages";
 import { Dashboard } from "./Dashboard";
+import { downloadCardsCsv } from "./csvDownload";
 
 type User = {
   id: string;
@@ -193,6 +194,15 @@ function SetsPage({
     }
   }
 
+  async function downloadCsv() {
+    setError("");
+    try {
+      await downloadCardsCsv();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The CSV download could not be completed.");
+    }
+  }
+
   return (
     <main className="sets-layout">
       <header className="topbar">
@@ -218,9 +228,9 @@ function SetsPage({
           <button className="secondary-button" onClick={() => onNavigate("/cards")}>
             View cards
           </button>
-          <a className="secondary-button" href="/api/cards/export.csv" download="pokevault-cards.csv">
+          <button className="secondary-button" type="button" onClick={() => void downloadCsv()}>
             Download CSV
-          </a>
+          </button>
           <button className="secondary-button" onClick={() => onNavigate("/wishlist")}>
             Wishlist
           </button>
