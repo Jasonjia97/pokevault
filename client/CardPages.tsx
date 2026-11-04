@@ -15,6 +15,7 @@ export type PokemonCard = {
   purchase_price: string;
   acquired_date: string | null;
   notes: string | null;
+  status: "owned" | "wishlist";
   created_at: string;
   is_starred: boolean;
 };
@@ -48,6 +49,7 @@ type CardValues = {
   purchase_price: string;
   acquired_date: string;
   notes: string;
+  status: "owned" | "wishlist";
 };
 
 const emptyCard: CardValues = {
@@ -58,16 +60,19 @@ const emptyCard: CardValues = {
   purchase_price: "0.00",
   acquired_date: "",
   notes: "",
+  status: "owned",
 };
 
 function CardForm({
   card,
   sets,
+  initialStatus = "owned",
   onCancel,
   onSave,
 }: {
   card?: PokemonCard;
   sets: CardSet[];
+  initialStatus?: "owned" | "wishlist";
   onCancel: () => void;
   onSave: (values: CardValues) => Promise<void>;
 }) {
@@ -81,8 +86,9 @@ function CardForm({
           purchase_price: card.purchase_price,
           acquired_date: card.acquired_date ?? "",
           notes: card.notes ?? "",
+          status: card.status,
         }
-      : { ...emptyCard, set_id: sets[0]?.id ?? "" },
+      : { ...emptyCard, set_id: sets[0]?.id ?? "", status: initialStatus },
   );
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<CardValidationErrors>({});
@@ -201,6 +207,16 @@ function CardForm({
             </div>
           </div>
 
+          <label htmlFor="card-status">Collection status</label>
+          <select
+            id="card-status"
+            value={values.status}
+            onChange={(event) => change("status", event.target.value as CardValues["status"])}
+          >
+            <option value="owned">Owned</option>
+            <option value="wishlist">Wishlist</option>
+          </select>
+
           <label htmlFor="card-notes">Notes</label>
           <textarea
             id="card-notes"
@@ -244,14 +260,17 @@ export function CardWorkspace({
   const [setFilter, setSetFilter] = useState("");
   const [sort, setSort] = useState("added_desc");
   const idMatch = path.match(/^\/cards\/([^/]+)(?:\/(edit))?$/);
-  const isNew = path === "/cards/new";
+  const isNew = path === "/cards/new" || path === "/wishlist/new";
   const isList = path === "/cards";
   const isFavorites = path === "/favorites";
+  const isWishlist = path === "/wishlist";
   const cardId = idMatch?.[1];
   const isEdit = idMatch?.[2] === "edit";
   const filterParams = new URLSearchParams({ sort });
   if (search.trim()) filterParams.set("search", search.trim());
   if (setFilter) filterParams.set("set_id", setFilter);
+  if (isWishlist) filterParams.set("status", "wishlist");
+  else if (isList) filterParams.set("status", "owned");
   const filterQuery = filterParams.toString();
 
   useEffect(() => {
@@ -260,7 +279,7 @@ export function CardWorkspace({
     setLoading(true);
     setCard(null);
 
-    const load = isList || isFavorites
+    const load = isList || isFavorites || isWishlist
       ? apiRequest<{ cards: PokemonCard[] }>(
           `${isFavorites ? "/api/cards/favorites" : "/api/cards"}?${filterQuery}`,
         ).then(({ cards: result }) => {
@@ -281,7 +300,7 @@ export function CardWorkspace({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [path, isList, isFavorites, cardId, filterQuery]);
+  }, [path, isList, isFavorites, isWishlist, cardId, filterQuery]);
 
   async function save(values: CardValues) {
     const editing = Boolean(card && isEdit);
@@ -297,10 +316,26 @@ export function CardWorkspace({
           purchase_price: values.purchase_price,
           acquired_date: values.acquired_date,
           notes: values.notes,
+          status: values.status,
         }),
       },
     );
     onNavigate(`/cards/${result.card.id}`);
+  }
+
+  async function moveToOwned(target: PokemonCard) {
+    try {
+      const result = await apiRequest<{ card: PokemonCard }>(
+        `/api/cards/${target.id}/status`,
+        { method: "PATCH", body: JSON.stringify({ status: "owned" }) },
+      );
+      setCard((current) => current?.id === target.id ? result.card : current);
+      setCards((current) => isWishlist
+        ? current.filter((item) => item.id !== target.id)
+        : current.map((item) => item.id === target.id ? result.card : item));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not move this card to owned.");
+    }
   }
 
   async function deleteCard() {
@@ -355,28 +390,59 @@ export function CardWorkspace({
           <button className="text-button" onClick={() => onNavigate("/sets")}>← Sets</button>
           <span aria-hidden="true">/</span>
           <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
+          <button className="text-button" onClick={() => onNavigate("/wishlist")}>Wishlist</button>
           <button className="text-button" onClick={() => onNavigate("/dashboard")}>Dashboard</button>
           <span aria-hidden="true">/</span>
-          {isFavorites ? <span>Favorites</span> : (
-            <button className="text-button" onClick={() => onNavigate("/favorites")}>Favorites</button>
+          {isFavorites ? <span>Favorites</span> : isWishlist ? <span>Wishlist</span> : (
+            <button
+              className="text-button"
+              onClick={() => onNavigate(path.startsWith("/wishlist") ? "/wishlist" : "/favorites")}
+            >
+              {path.startsWith("/wishlist") ? "Wishlist" : "Favorites"}
+            </button>
           )}
         </nav>
 
         {isNew ? (
-          <CardForm sets={sets} onCancel={() => onNavigate("/cards")} onSave={save} />
+          <CardForm
+            sets={sets}
+            initialStatus={path === "/wishlist/new" ? "wishlist" : "owned"}
+            onCancel={() => onNavigate(path === "/wishlist/new" ? "/wishlist" : "/cards")}
+            onSave={save}
+          />
         ) : isEdit ? (
           loading ? <div className="empty-state">Loading card…</div> : card ? (
-            <CardForm card={card} sets={sets} onCancel={() => onNavigate(`/cards/${card.id}`)} onSave={save} />
+            <CardForm
+              card={card}
+              sets={sets}
+              onCancel={() => onNavigate(`/cards/${card.id}`)}
+              onSave={save}
+            />
           ) : <div className="empty-state">{error || "Card not found."}</div>
-        ) : isList || isFavorites ? (
+        ) : isList || isFavorites || isWishlist ? (
           <section className="cards-list-page">
             <div className="card-page-heading">
               <div>
-                <span className="eyebrow">{isFavorites ? "YOUR FAVORITES" : "YOUR COLLECTION"}</span>
-                <h1>{isFavorites ? "Favorite cards" : "Your cards"}</h1>
-                <p>{isFavorites ? "Cards you have starred for quick access." : "Keep the details of the cards you collect."}</p>
+                <span className="eyebrow">
+                  {isFavorites ? "YOUR FAVORITES" : isWishlist ? "CARDS TO FIND" : "YOUR COLLECTION"}
+                </span>
+                <h1>{isFavorites ? "Favorite cards" : isWishlist ? "Wishlist" : "Your cards"}</h1>
+                <p>
+                  {isFavorites
+                    ? "Cards you have starred for quick access."
+                    : isWishlist
+                      ? "Cards you hope to buy, kept separate from the cards you own."
+                      : "Keep the details of the cards you collect."}
+                </p>
               </div>
-              {!isFavorites && <button className="primary-button" onClick={() => onNavigate("/cards/new")}>＋ Add a card</button>}
+              {!isFavorites && (
+                <button
+                  className="primary-button"
+                  onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}
+                >
+                  ＋ {isWishlist ? "Add a wishlist card" : "Add a card"}
+                </button>
+              )}
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             <div className="card-filters" aria-label="Find and sort cards">
@@ -420,9 +486,24 @@ export function CardWorkspace({
             </div>
             {loading ? <div className="empty-state">Loading cards…</div> : cards.length === 0 ? (
               <div className="empty-state">
-                <h2>{isFavorites ? "No favorites yet" : "No cards yet"}</h2>
-                <p>{isFavorites ? "Star a card to see it here." : "Add a card to one of your sets to start your collection."}</p>
-                {!isFavorites && <button className="primary-button" onClick={() => onNavigate("/cards/new")}>Add your first card</button>}
+                <h2>
+                  {isFavorites ? "No favorites yet" : isWishlist ? "Your wishlist is empty" : "No owned cards yet"}
+                </h2>
+                <p>
+                  {isFavorites
+                    ? "Star a card to see it here."
+                    : isWishlist
+                      ? "Add cards you hope to buy and keep them separate from your collection."
+                      : "Add an owned card to one of your sets to start your collection."}
+                </p>
+                {!isFavorites && (
+                  <button
+                    className="primary-button"
+                    onClick={() => onNavigate(isWishlist ? "/wishlist/new" : "/cards/new")}
+                  >
+                    {isWishlist ? "Add your first wishlist card" : "Add your first card"}
+                  </button>
+                )}
               </div>
             ) : (
               <ul className="card-list">
@@ -432,7 +513,19 @@ export function CardWorkspace({
                       <span className="card-name">{item.name}</span>
                       <span>{item.set_name}{item.card_number ? ` · #${item.card_number}` : ""}</span>
                       <span>${Number(item.purchase_price).toFixed(2)}</span>
+                      <span className={`card-status-badge status-${item.status}`}>
+                        {item.status === "wishlist" ? "Wishlist" : "Owned"}
+                      </span>
                     </button>
+                    {isWishlist && (
+                      <button
+                        className="secondary-button wishlist-own-button"
+                        type="button"
+                        onClick={() => void moveToOwned(item)}
+                      >
+                        Move to owned
+                      </button>
+                    )}
                     <button
                       className="star-button"
                       type="button"
@@ -465,6 +558,15 @@ export function CardWorkspace({
                   >
                     {card.is_starred ? "★ Remove favorite" : "☆ Add to favorites"}
                   </button>
+                  {card.status === "wishlist" && (
+                    <button
+                      className="primary-button"
+                      type="button"
+                      onClick={() => void moveToOwned(card)}
+                    >
+                      Move to owned
+                    </button>
+                  )}
                   <button className="secondary-button" onClick={() => onNavigate(`/cards/${card.id}/edit`)}>Edit card</button>
                   <button className="danger-button" onClick={deleteCard}>Delete card</button>
                 </div>
@@ -474,6 +576,7 @@ export function CardWorkspace({
                 <div><dt>Condition</dt><dd>{card.condition || "Not specified"}</dd></div>
                 <div><dt>Purchase price</dt><dd>${Number(card.purchase_price).toFixed(2)}</dd></div>
                 <div><dt>Acquired</dt><dd>{card.acquired_date || "Not specified"}</dd></div>
+                <div><dt>Status</dt><dd>{card.status === "wishlist" ? "Wishlist" : "Owned"}</dd></div>
                 <div><dt>Notes</dt><dd>{card.notes || "No notes"}</dd></div>
               </dl>
             </article>

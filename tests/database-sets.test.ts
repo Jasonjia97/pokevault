@@ -400,12 +400,13 @@ describe("PokéVault authentication and set ownership", () => {
     await pool.query("DELETE FROM cards WHERE user_id = $1", [alice.user.id]);
     const twentyCardId = randomUUID();
     const thirtyCardId = randomUUID();
+    const wishlistCardId = randomUUID();
     await pool.query(
       `INSERT INTO cards (id, user_id, set_id, name, purchase_price, status)
        VALUES ($1, $2, $3, 'Owned $20', 20, 'owned'),
               ($4, $2, $3, 'Owned $30', 30, 'owned'),
               ($5, $2, $3, 'Wishlist $100', 100, 'wishlist')`,
-      [twentyCardId, alice.user.id, aliceSet.body.set.id, thirtyCardId, randomUUID()],
+      [twentyCardId, alice.user.id, aliceSet.body.set.id, thirtyCardId, wishlistCardId],
     );
     await pool.query(
       `INSERT INTO cards (id, user_id, set_id, name, purchase_price, status)
@@ -424,6 +425,57 @@ describe("PokéVault authentication and set ownership", () => {
     expect(dashboard.body.cardsBySet).toEqual([
       expect.objectContaining({ set_name: "Alice Set", card_count: 2 }),
     ]);
+    const aliceOwnedCards = await request(app)
+      .get("/api/cards?status=owned")
+      .set("Cookie", alice.cookie);
+    const aliceWishlist = await request(app)
+      .get("/api/cards?status=wishlist")
+      .set("Cookie", alice.cookie);
+    expect(aliceOwnedCards.body.cards.map((item: { name: string; status: string }) => ({
+      name: item.name,
+      status: item.status,
+    }))).toEqual([
+      { name: "Owned $20", status: "owned" },
+      { name: "Owned $30", status: "owned" },
+    ]);
+    expect(aliceWishlist.body.cards.map((item: { name: string; status: string }) => ({
+      name: item.name,
+      status: item.status,
+    }))).toEqual([{ name: "Wishlist $100", status: "wishlist" }]);
+    expect(
+      (await request(app).get("/api/cards?status=wishlist").set("Cookie", bob.cookie))
+        .body.cards,
+    ).toEqual([]);
+    expect(
+      (await request(app)
+        .patch(`/api/cards/${wishlistCardId}/status`)
+        .set("Cookie", bob.cookie)
+        .send({ status: "owned" })).status,
+    ).toBe(404);
+
+    const movedWishlistCard = await request(app)
+      .patch(`/api/cards/${wishlistCardId}/status`)
+      .set("Cookie", alice.cookie)
+      .send({ status: "owned" });
+    expect(movedWishlistCard.status).toBe(200);
+    expect(movedWishlistCard.body.card.status).toBe("owned");
+    expect(
+      (await request(app).get("/api/cards?status=wishlist").set("Cookie", alice.cookie))
+        .body.cards,
+    ).toEqual([]);
+    expect(
+      (await request(app).get("/api/cards?status=owned").set("Cookie", alice.cookie))
+        .body.cards,
+    ).toHaveLength(3);
+    const dashboardAfterMove = await request(app)
+      .get("/api/dashboard")
+      .set("Cookie", alice.cookie);
+    expect(dashboardAfterMove.body.totalCards).toBe(3);
+    expect(dashboardAfterMove.body.totalSpent).toBe("150.00");
+    expect(dashboardAfterMove.body.cardsBySet).toEqual([
+      expect.objectContaining({ set_name: "Alice Set", card_count: 3 }),
+    ]);
+
     const bobsDashboard = await request(app).get("/api/dashboard").set("Cookie", bob.cookie);
     expect(bobsDashboard.body.totalCards).toBe(1);
     expect(Number(bobsDashboard.body.totalSpent)).toBe(999);

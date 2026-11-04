@@ -53,6 +53,7 @@ export function Dashboard({
         <nav className="cards-nav" aria-label="Collection navigation">
           <button className="text-button" onClick={() => onNavigate("/sets")}>← Sets</button>
           <button className="text-button" onClick={() => onNavigate("/cards")}>Cards</button>
+          <button className="text-button" onClick={() => onNavigate("/wishlist")}>Wishlist</button>
           <button className="text-button" onClick={() => onNavigate("/favorites")}>Favorites</button>
         </nav>
         <div className="card-page-heading">
